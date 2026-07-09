@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>"Manually add author"</title>
+{% endblock %}
+
+{% block current_function %}
+    {{ current_function }}
+{% endblock %}
+
+{% block add_author %}
+<form action="/manually_add_author" method="post">
+    <input
+        type="hidden"
+        name="saved_author_name"
+        value="{{ saved_author_name }}"
+    >
+    <div class="col-sm-5 p-5 border bg-light">
+        <label for="name" class="form-label">Book title</label>
+        <input type="text" class="form-control" id="name" name="author_name" value="{{ saved_author_name }}">
+    </div>
+    <div class="col-sm-5 p-5 border bg-light">
+        <label for="birth_year" class="form-label col-sm-5">Year of birth</label>
+        <input type="number" class="form-control" id="birth_year" name="birth_year" placeholder=1971>
+    </div>
+    <div class="col-sm-5 p-5 border bg-light">
+        <label for="death_year" class="form-label col-sm-5">Year of death number</label>
+        <input type="number" class="form-control" id="death_year" name="death_year" placeholder=1971>
+    </div>
+    <div class="col-sm-5 p-5 border bg-light">
+        <button type="submit" value="Manually-Add-Author">
+            Manually Add Author
+        </button>
+    </div>
+</form>
+
+{% endblock %}
+

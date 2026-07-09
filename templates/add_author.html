@@ -4,25 +4,92 @@
 <title>"New Author"</title>
 {% endblock %}
 
+{% block current_function %}
+{{ current_function }}
+{% endblock %}
+
 {% block add_author %}
+
 <form action="/add_author" method="post">
+    <input
+        type="hidden"
+        name="saved_author_name"
+        value="{{ saved_author_name }}"
+    >
+
+    {% if possible_authors|length != 0%}
+    <input
+        type="hidden"
+        name="possible_authors"
+        value='{{ possible_authors | tojson }}'>
+<!--        Store the possible authors in json format-->
+
     <div class="col-sm-5">
-        <label for="authorName" class="form-label">Name of the author:</label>
-        <input type="text" class="form-control" id="authorName" name="author_name" placeholder="Charles J.H. Dickens">
+        <label for="savedAuthorName" class="form-label">Name of the author:</label>
+        <input type="text" class="form-control" id="savedAuthorName" name="author_name" placeholder="{{ saved_author_name }}">
     </div>
-    <div class="col-sm-5">
-        <label for="birthYear" class="form-label">Year of birth</label>
-        <input type="number" class="form-control" id="birthYear" name="birth_year" placeholder=2010>
-    </div>
-    <div class="col-sm-5">
-        <label for="deathYear" class="form-label">Year of death</label>
-        <input type="number" class="form-control" id="deathYear" name="death_year" placeholder="2010 or leave empty when NA">
-    </div >
+
+    {% if similar_authors | length != 0%}
+        <div class="col-sm-5 p-5 border bg-light">
+            <select class="col-sm-5 form-select" aria-label="Author" name="sim_author_nr">
+                <option selected>Open this menu with possible authors</option>
+                    {% for value, author in similar_authors %}
+                        <option value="{{ value }}">{{ author }}</option>
+                    {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+
+        <div class="col-sm-5 p-5 border bg-light">
+            <select class="col-sm-5 form-select" aria-label="Author" name="pos_author_nr">
+                <option selected>Open this menu with possible authors</option>
+                    {% for author in possible_authors %}
+                        <option value="{{ author['order_number'] }}">{{ author['name'] }}</option>
+                    {% endfor %}
+            </select>
+        </div>
+
     <div class="col-sm-5 p-5 border bg-light">
         <button type="submit" value="Add-Author" >
             Add Author
         </button>
     </div>
+
+    {% else %}
+        <div class="col-sm-5">
+            <label for="authorName" class="form-label">Name of the author:</label>
+            <input type="text" class="form-control" id="authorName" name="author_name" placeholder="Charles J.H. Dickens">
+        </div>
+        <div class="col-sm-5 p-5 border bg-light">
+            <button type="submit" value="Search-Author" >
+                Search Author
+            </button>
+        </div>
+    {% endif %}
 </form>
+
+{% if author_not_found == True %}
+    <div class="col-sm-5 p-5 border bg-light">
+        <p>
+            The author <strong>{{ saved_author_name }}</strong>
+            could not be found.
+        </p>
+        <p>
+            Would you like to add this author manually?
+        </p>
+        <a href="{{ url_for('manual_add_author', author_name=saved_author_name) }}">
+            <p>DEBUG author_name: {{ author_name }}</p>
+            <button type="button">
+                Add manually
+            </button>
+        </a>
+        <a href="{{ url_for('home') }}">
+            <button type="button">
+                Abort
+            </button>
+        </a>
+    </div>
+
+{% endif %}
 {% endblock %}
 

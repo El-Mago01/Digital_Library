@@ -4,6 +4,10 @@
 <title>{{ app_name }}</title>
 {% endblock %}
 
+{% block current_function %}
+{{ current_function }}
+{% endblock %}
+
 {% block Latest_5 %}
 See below the available books:
 {% if all_books|length != 0 %}

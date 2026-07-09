@@ -15,6 +15,7 @@ class Author(db.Model):
     __tablename__ = 'authors'
     author_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
+    key = db.Column(db.String) # This is a reference key from open library
     birth_date = db.Column(db.String)
     death_date = db.Column(db.String)
 

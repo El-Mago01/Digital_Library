@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>"New Author"</title>
+{% endblock %}
+
+{% block add_author %}
+<form action="/add_author" method="post">
+    <div class="col-sm-5">
+        <label for="authorName" class="form-label">Name of the author:</label>
+        <input type="text" class="form-control" id="authorName" name="author_name" placeholder="Charles J.H. Dickens">
+    </div>
+    <div class="col-sm-5">
+        <label for="birthYear" class="form-label">Year of birth</label>
+        <input type="number" class="form-control" id="birthYear" name="birth_year" placeholder=2010>
+    </div>
+    <div class="col-sm-5">
+        <label for="deathYear" class="form-label">Year of death</label>
+        <input type="number" class="form-control" id="deathYear" name="death_year" placeholder="2010 or leave empty when NA">
+    </div >
+    <div class="col-sm-5 p-5 border bg-light">
+        <button type="submit" value="Add-Author" >
+            Add Author
+        </button>
+    </div>
+</form>
+{% endblock %}
+

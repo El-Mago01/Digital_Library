@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>{{ app_name }}</title>
+{% endblock %}
+
+{% block Latest_5 %}
+See below the available books:
+{% if all_books|length != 0 %}
+    <div class="container">
+        <div class="row">
+        {% for title, author, publication_year in all_books %}
+            <div class="col-sm-2">
+                <div class="p-5 border bg-light">
+                    {{ title }} - written by {{ author }} and published in {{ publication_year }}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

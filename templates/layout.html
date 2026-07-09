@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1">
+    {% block title %}
+    {% endblock %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                {{ app_name }}
+            </a>
+
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link active" href="/">Home</a>
+                <a class="nav-link" href="http://localhost:5000/add_author">Authors</a>
+                <a class="nav-link" href="http://localhost:5000/add_book">Books</a>
+                <a class="nav-link" href="http://localhost:5000/add_category">Categories</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero text-center">
+        <div class="container">
+            <h1 class="display-3 fw-bold">Overview of all MAGOs Books</h1>
+            <p class="lead mt-3">
+
+            </p>
+            {% block Latest_5 %}
+            {% endblock%}
+            {% block add_book %}
+            {% endblock%}
+            {% block add_author %}
+            {% endblock%}
+        </div>
+    </section>
+</body>
+</html>

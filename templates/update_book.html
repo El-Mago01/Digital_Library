@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>"Updating a Book"</title>
+{% endblock %}
+
+{% block current_function %}
+{{ current_function }}
+{% endblock %}
+
+{% block add_book %}
+
+<form action="/updated_book" method="post">
+
+    <input
+        type="hidden"
+        name="book_id"
+        value="{{ book_to_update.book_id }}"
+    >
+
+    <div class="col-sm-6 p-5 border bg-light">
+        <label for="bookTitle" class="form-label">Book title</label>
+        <input type="text" class="form-control" id="bookTitle" name="book_title" placeholder="{{ book_to_update.title }}">
+
+        <label for="bookISBN" class="form-label col-sm-5">ISBN number</label>
+        <input type="text" class="form-control" id="bookISBN" name="book_isbn" placeholder="{{ book_to_update.isbn }}">
+        <label for="publicationYear" class="col-sm-5 form-label">Publication year</label>
+        <input type="number" class="form-control" id="publicationYear" name="publication_year" placeholder="{{ book_to_update.publication_year }}">
+
+        <label for="olidBook" class="form-label">OLID Book ID</label>
+        <input type="text" class="form-control" id="olidBook" name="olid_book_id" placeholder="{{ book_to_update.olid_book_id }}">
+
+        <label for="coverImage" class="form-label">Cover-image source</label>
+        <input type="text" class="form-control" id="coverImage" name="cover_image" placeholder="{{ book_to_update.cover_img }}">
+    </div>
+
+    <select class="col-sm-6 p-3 border bg-light form-select" aria-label="Author" name="author_id">
+        <option selected>Open this menu with authors</option>
+        {% for author in authors %}
+            <option value="{{ author.author_id }}">{{ author.name }}</option>
+        {% endfor %}
+    </select>
+    <div class="col-sm-6 p-5 border bg-light">
+        <button type="submit" value="Update-Book">
+            Update Book
+        </button>
+    </div>
+</form>
+
+{% endblock %}
+

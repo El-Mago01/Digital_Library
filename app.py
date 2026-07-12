@@ -1,7 +1,7 @@
 import json
 from flask import Flask, request, render_template, redirect, url_for, abort
 import os
-from data_fetcher import fetch_detailed_book_info, BookFetchException, fetch_author_info
+import data_fetcher as df
 import data_storage as ds
 from data_models import db, Author, Book
 import logging
@@ -14,6 +14,10 @@ logging.basicConfig (
 )
 
 app_name="MAGO_Library"
+host="http://127.0.0.1"
+port=5000
+host_port=host + ":" + str(port)
+
 app = Flask(__name__)
 """
 Setting the Database URI
@@ -37,7 +41,18 @@ with app.app_context():
 Helper functions
 -----------------------------------------------------------------------
 """
-
+def return_to_home(current_function, outcome:dict):
+    all_books = ds.get_all_books_elements()
+    print(type(all_books))
+    for title, author_name, publication_year, cover_image, book_id in all_books:
+        print(f"title: {title}, author: {author_name}, publication_year: {publication_year}, cover_image: {cover_image}")
+    return render_template('home.html',
+                           app_name=app_name,
+                           host_port=host_port,
+                           all_books=all_books,
+                           current_function=current_function,
+                           outcome=outcome
+                           )
 
 """
 Routes
@@ -45,19 +60,284 @@ Routes
 """
 @app.route('/', methods=['GET'])
 def home():
+    outcome = {'result': 200, 'message': 'empty'}
+    return return_to_home("Current books in MAGO Library", outcome)
 
-    all_books = ds.get_all_books_and_authors()
-    print(type(all_books))
-    for book in all_books:
-        book_details=fetch_detailed_book_info(book[0], book[1])
 
-        print(type(book))
-    return render_template('home.html',
+
+@app.route('/add_book', methods=['POST','GET'])
+def add_book():
+    """
+    Note: OLID = Open Library Identifier (the ID mechanism of open library for books, authors and cover images
+    This route enables the user to add a new book. The adding of a new book typically occurs in 4 STEPS
+    STEP 1: GET request
+    The 1st time this route is accessed is when
+    the user selects on the Add book menu item. This is a GET request and the user receives the
+    add_book.html file
+    STEP 2: 1st POST request
+    The 2nd time this route is accessed is when the user filled in a title and submits it. This
+    results the reception of a POST request with the "book_title" and author fulfilled. Upon reception 2 things
+    will need to happen:
+    1. The DB is checked to see if a similar title/author is already stored. If it is, the similar_books value is
+    filled with the similar titles already stored in Book.
+    In this is case, the add_book.html is prefilled with the list of similar_books. If the user selects
+    a book from this list, the session is aborted.
+    2. from data_fetcher, the fetch_book_info is called, with the title and author as search items.
+    The call is made to open library to search for this title/author. A list of dicts with all relevant bookinfo
+    is returned. The title/author/publishing_year are displayed in a drop-down list with the olid_key as value that
+    will be returned for the selected book.  The user has now 2 options, either it selects a book from the list and press
+    "add book" or clicks "Manually add books".
+    STEP 3: 2nd POST request to add the selected book (and indirectly the author if needed)
+    3. The user selected "add book" for the selected book:
+    First, there is a check if the Author OLID idea is already stored, or if there is already an author with
+    the same name.
+    If there is, the author_ID of this author is returned. If not, this new author is stored in the DB.
+    After this, the Book elements are compiled and constructed so that it can be stored via ORM in the DB.
+    request
+    :return:
+    """
+    # 1st REQUEST, a GET request
+    if request.method == 'GET':
+        logging.info("Adding Book Process STEP 1: GET request")
+        return render_template('add_book.html',
+                                possible_books=[],
+                                saved_book_title="E.g. Secret of secrets",
+                                saved_author_name="E.g. Dan Brown",
+                                similar_books=[],
+                                current_function="Add a new book",
+                                book_not_found = False
+                               )
+
+    saved_book_title = request.form.get('saved_book_title', "")
+    saved_author_name = request.form.get('saved_author_name', "")
+
+    book_title = request.form.get('book_title',"")
+    author_name = request.form.get('author_name', "")
+    print(f"book_title  {book_title} saved_book_title, {saved_book_title}, saved_author_name, {saved_author_name}")
+
+    # 2nd REQUEST, a POST request
+    if len(saved_book_title) == 0 and len(book_title) != 0:
+        logging.info("Adding Book Process STEP 2: 1st POST request")
+
+        similar_stored_books = ds.check_book_title_already_in_db(book_title)
+        # 2 Options here, either there are similar_stored_books or not.
+        # If similar books are found in the DB, the user will receive an adjusted
+        # add_book.html where it can either select an existing title, or a title from the
+        # possible books found on the open library. If there are no similar_books found
+        # The user will only receive the possible book selection
+        try:
+            possible_books, author_name = df.fetch_book_info(book_title, author_name)
+        except df.BookFetchException as e:
+            outcome = {'result': 200, 'message': f'Could not fetch book/author information due to an exception: \n{e}. \nTry again later.'}
+            return return_to_home("Adding a new author", outcome=outcome)
+        # possible_books contains a list of dictionaries with limited info
+        # I.e. title, author, key, ordernumber
+        book_not_found = True
+        if len(possible_books) != 0:
+            book_not_found = False
+        return render_template('add_book.html',
+                               possible_books=possible_books,
+                               saved_book_title=book_title,
+                               saved_author_name=saved_author_name,
+                               similar_books=similar_stored_books,
+                               current_function="Add a new book",
+                               book_not_found=book_not_found,
+                               author_name=author_name
+                               )
+    # STEP 3: 2nd POST request to add the selected book (and indirectly the author if needed)
+    # Here there are 3 scenario's for this stage:
+    # 1. The user selected 1 of the possible_books. In that case:
+    #    a. Check if the author is already stored
+    #    b. If not, create an Author object and store it in the DB
+    #    c. Create a book object and store it in the DB
+    # 2. The user changed the book_title or author_name. In that case, it should be treated like the STEP 2
+    # 3. The user selected the manual storage option. In that case, the rout /manually_add_book is selected
+
+    # The user changed the wanted book title (case 2)
+    if len(book_title) != 0 or len(author_name) != 0:
+        similar_stored_books = ds.check_book_title_already_in_db(book_title)
+        try:
+            possible_books, author_name = df.fetch_book_info(book_title, author_name)
+        except df.BookFetchException as e:
+            outcome = {'result': 200, 'message': f'Could not fetch book/author information due to an exception: \n{e}. \nTry again later.'}
+            return return_to_home("Adding a new author", outcome=outcome)
+        available_books = []
+        for book in possible_books:
+            my_dict=book.serialize()
+            available_books.append(my_dict)
+
+        book_not_found = True
+        if len(possible_books) != 0:
+            book_not_found = False
+        return render_template('add_book.html',
+                               possible_books=available_books,
+                               saved_book_title=book_title,
+                               saved_author_name=saved_author_name,
+                               similar_books=similar_stored_books,
+                               current_function="Add a new book",
+                               book_not_found=book_not_found,
+                               author_name=author_name
+                               )
+
+    sim_stored_book = request.form.get('sim_book_nr', "")
+    if sim_stored_book != "": # This is case 3, the user selected one of the already stored books
+        return redirect(url_for("home"))
+    # 1. The user selected 1 of the possible_books from the available options
+    try:
+        books_string = request.form.get('possible_books', "")
+        possible_books = json.loads(books_string)
+        key = request.form.get('pos_book_id', "")
+        outcome_message = ""
+    except (TypeError, ValueError) as e:
+        abort(500, description=f"Unexpected returned input provided by the add_book.html form . {e}")
+
+    book_dict_to_store = {}
+    author_id = -1
+    for the_book in possible_books:
+        try:
+            if the_book['olid_book_id'] == key and key != "":
+                book_dict_to_store = the_book
+                author_olid = the_book.get('olid_author_id')[0]
+                author_id_and_name = ds.check_author_already_in_db(the_book["title"], author_olid)
+                if len(author_id_and_name) == 0:
+                    new_author = df.fetch_new_author(author_olid)
+                    if new_author is not None:
+                        # Store author in the DB
+                        db.session.add(new_author)
+                        db.session.commit()
+                        author_id = new_author.author_id
+                        outcome_message += f"<p>Successfully added author {new_author.name}.</p>"
+                else:
+                    author_id, author_name = author_id_and_name[0] # If the author was already stored in the DB.
+                break
+
+                # Note, if author is already stored, nothing needs to be done. Only the author_id is returned.
+        except KeyError as e:
+            message="Internal Error: could not find the author_olid or book key."
+            logging.info(message)
+            abort(500, descripton=message)
+
+    logging.info(f"This book is about to be stored: {book_dict_to_store}")
+    outcome = {'result': 500, 'message' : "An internal error occurred. Could not store book"}
+    if book_dict_to_store != {}:
+        if author_id == -1:
+            outcome = ("Could not find a related book. Please ensure to store an "
+                       "author before adding the book.")
+            return render_template("home.html", outcome=outcome)
+        book_dict_to_store['author_id'] = author_id
+        book_to_store = df.fetch_new_book(book_dict_to_store)
+        db.session.add(book_to_store)
+        db.session.commit()
+        outcome_message += f"<p>Successfully added book {book_to_store.title}</p>"
+        outcome = {'result': 200, 'message' : outcome_message}
+    return return_to_home("Adding a book", outcome=outcome )
+
+@app.route('/manually_add_book', methods=['POST','GET'])
+def manually_add_book():
+    # 1st REQUEST, a GET request
+    if request.method == 'GET':
+
+        book_title = request.args.get('book_title', "")
+        logging.info(f"Adding Book with GET request for title: {book_title}")
+
+        return render_template('manually_add_book.html',
+                               current_function="Manually add a new book",
+                               saved_book_title=book_title
+                               )
+    # A post message is received. Now store the data
+    logging.info("Adding Book with POST request")
+    received_book = Book(
+        title=request.form.get('book_title', ""),
+        birth_date=request.form.get('birth_date',"-"),
+        death_date=request.form.get('death_date',"-"),
+        key=""
+    )
+    logging.info(f"This book will be stored: {received_book}")
+    db.session.add(received_book)
+    db.session.commit()
+    outcome = {'result': 200, 'message' : f'Successfully added book {received_book.title}'}
+    return render_template("home.html", outcome=outcome )
+
+@app.route('/update_book', methods=['GET'])
+def update_book():
+    try:
+        received_book_id = int(request.args.get('book_id', "-1"))
+    except ValueError as e:
+        abort(500, description=e)
+
+    if received_book_id == -1:
+        abort(404, description=f"Book with id {received_book_id} not found")
+
+    book_to_update = ds.get_one_book(received_book_id)
+    authors = ds.get_all_authors_from_db()
+    return render_template('update_book.html',
                            app_name=app_name,
-                           all_books=all_books,
-                           current_function="Current books in MAGO Library",
+                           host_port=host_port,
+                           book_to_update=book_to_update,
+                           current_function="Updating a book",
+                           authors=authors
                            )
 
+@app.route('/updated_book', methods=['POST'])
+def updated_book():
+    try:
+        book_id = int(request.form['book_id'])
+        updated_publication_year = int(request.form.get('book_publication_year', "0"))
+        updated_author = request.form.get('author_id', "-1")
+    except ValueError as e:
+        abort(500, description=f"Updated failed due to : {e}")
+    updated_title = request.form.get('book_title', "")
+    updated_book_isbn = request.form.get('book_isbn', "")
+    updated_olid_book_id = request.form.get('olid_book_id', "")
+    updated_cover_image = request.form.get('cover_image', "")
+
+    book_to_update = ds.get_one_book(book_id)
+    if len(updated_title) != 0:
+        book_to_update.title = updated_title
+    if len(updated_book_isbn) != 0:
+        book_to_update.isbn = updated_book_isbn
+    if updated_publication_year != 0:
+        book_to_update.publication_year = updated_publication_year
+    if len(updated_olid_book_id) != 0:
+        book_to_update.olid_book_id = updated_olid_book_id
+    if len(updated_cover_image) != 0:
+        book_to_update.cover_img = df.compile_book_cover(updated_cover_image)
+    if updated_author != "Open this menu with authors" and updated_author != "-1":
+        book_to_update.author_id = updated_author
+
+    db.session.commit()
+    outcome = {'result': 200, 'message' : f'Update of book: id-{book_id} successful'}
+    return return_to_home("Update a book", outcome)
+
+
+@app.route('/delete_book', methods=['GET'])
+def delete_book():
+    try:
+        received_book_id = int(request.args.get('book_id', "-1"))
+    except ValueError as e:
+        abort(500, description=e)
+
+    if received_book_id == -1:
+        abort(404, description=f"Book with id {received_book_id} not found")
+
+    book_to_delete = ds.get_one_book(received_book_id)
+    db.session.delete(book_to_delete)
+    db.session.commit()
+    outcome = {'result': 200, 'message' : f'Deletion of book: id-{received_book_id} successful'}
+    return return_to_home("Delete a book", outcome)
+
+
+@app.route('/list_authors', methods=['GET'])
+def list_authors():
+    all_authors = ds.get_all_authors_from_db()
+    for author_id, name, olid_author, cover_img, birth_date, death_date in all_authors:
+        print(f"author_id: {author_id}, name: {name}, olid_author: {olid_author}, cover_image: {cover_img}, birth_year: {birth_date}, death_year: {death_date}")
+    return render_template('list_authors.html',
+                           app_name=app_name,
+                           host_port=host_port,
+                           all_authors=all_authors,
+                           current_function="Listing all authors"
+                           )
 
 @app.route('/add_author', methods=['POST','GET'])
 def add_author():
@@ -96,14 +376,14 @@ def add_author():
 
     # 2nd REQUEST, a POST request
     if len(saved_author_name) == 0 and len(author_name) != 0:
-        similar_stored_authors = ds.check_author_name_already_in_db(author_name)
+        similar_stored_authors = ds.check_author_already_in_db(author_name)
         # 2 Options here, either there are similar_stored_authors or not.
         # If similar authors are found in the DB, the user will receive an adjusted
         # add_author.html where it can either select an existing name, or a name from the
         # possible authors found on the open library. If there are no similar_authors found
         # The user will only receive the possible author selection
 
-        possible_authors = fetch_author_info(author_name)
+        possible_authors = df.fetch_author_info(author_name)
         author_not_found = True
         if len(possible_authors) != 0:
             author_not_found = False
@@ -121,8 +401,8 @@ def add_author():
     #    is treated like it would be the 2nd REQUEST (POST)
     # 3. The user selected one of the already stored authors
     if len(author_name) != 0: # The user changed the wanted author name (case 2)
-        similar_stored_authors = ds.check_author_name_already_in_db(author_name)
-        possible_authors = fetch_author_info(author_name)
+        similar_stored_authors = ds.check_author_already_in_db(author_name)
+        possible_authors = df.fetch_author_info(author_name)
         author_not_found = True
         if len(possible_authors) != 0:
             author_not_found = False
@@ -146,19 +426,20 @@ def add_author():
         print("forwarded possible_authors: ", possible_authors)
         selected_author=int(request.form.get('pos_author_nr',-1))
         print("This is the final selected author", selected_author, possible_authors[selected_author]['name'])
-    except:
-        ValueError("Invalid return input provided by the add_author.html form")
-        abort(500, description="return input provided by the add_author.html form is not an integer")
+    except ValueError as e:
+        abort(500, description=f"return input provided by the add_author.html form is not an integer. See message: {e}")
+
     received_author = Author(
         name=possible_authors[selected_author]['name'],
         birth_date=possible_authors[selected_author].get('birth_date',"-"),
         death_date=possible_authors[selected_author].get('death_date',"-"),
-        key=possible_authors[selected_author].get('key',"")
+        olid_author=possible_authors[selected_author].get('key',"")
     )
     logging.info(f"This author will be stored: {received_author}")
     db.session.add(received_author)
     db.session.commit()
-    return redirect(url_for("home"))
+    outcome = {'result': 200, 'message' : f'Successfully added author {received_author.name}'}
+    return return_to_home("Adding a new author", outcome=outcome )
 
 @app.route('/manually_add_author', methods=['POST','GET'])
 def manually_add_author():
@@ -183,30 +464,73 @@ def manually_add_author():
     logging.info(f"This author will be stored: {received_author}")
     db.session.add(received_author)
     db.session.commit()
-    return redirect(url_for("home"))
+    outcome = {'result': 200, 'message' : f'Successfully added author {received_author.name}'}
+    return return_to_home("Manually adding an author", outcome=outcome )
 
-@app.route('/add_book', methods=['POST','GET'])
-def add_book():
-    if request.method == 'GET':
-        authors=ds.get_authors_name_and_ids()
 
-        logging.info(f"Adding a book with GET request and the following authors: {authors}")
-        return render_template('add_book.html', authors=authors)
-    logging.info("Adding a book with POST request")
-    isbn = request.form.get('book_isbn')
-    title = request.form.get('book_title')
-    author_id = request.form.get('author_id')
-    publication_year = request.form.get('publication_year')
-    received_book = Book(
-        title=title,
-        author_id=author_id,
-        isbn=isbn,
-        publication_year=publication_year
-    )
-    logging.info(f"This book will be stored: {received_book}")
-    db.session.add(received_book)
+@app.route('/update_author', methods=['GET'])
+def update_author():
+    try:
+        received_author_id = int(request.args.get('author_id', "-1"))
+    except ValueError as e:
+        abort(500, description=e)
+
+    if received_author_id == -1:
+        abort(404, description=f"Book with id {received_author_id} not found")
+
+    author_to_update = ds.get_one_author(received_author_id)
+    return render_template('update_author.html',
+                           app_name=app_name,
+                           host_port=host_port,
+                           author_to_update=author_to_update,
+                           current_function="Updating an author"
+                           )
+
+@app.route('/updated_author', methods=['POST'])
+def updated_author():
+    try:
+        author_id = int(request.form['author_id'])
+        birth_year = int(request.form.get('birth_date', "0"))
+        death_year = int(request.form.get('death_date', "0"))
+    except ValueError as e:
+        abort(500, description=f"Updated failed due to : {e}")
+    updated_name = request.form.get('author_name', "")
+    updated_olid_author = request.form.get('olid_author', "")
+    updated_cover_image = request.form.get('cover_image', "")
+
+    author_to_update = ds.get_one_author(author_id)
+    if len(updated_name) != 0:
+        author_to_update.name = updated_name
+    if len(updated_olid_author) != 0:
+        author_to_update.olid_author = updated_olid_author
+    if birth_year != 0:
+        author_to_update.birth_year = birth_year
+    if death_year != 0:
+        author_to_update.death_year = death_year
+    if len(updated_cover_image) != 0:
+        author_to_update.cover_img = df.compile_book_cover(updated_cover_image)
     db.session.commit()
-    return redirect(url_for("home"))
+    outcome = {'result': 200, 'message' : f'Update of author: id-{author_id} successful'}
+    return return_to_home("Update an author", outcome)
+
+
+@app.route('/delete_author', methods=['GET'])
+def delete_author():
+    try:
+        received_author_id = int(request.args.get('author_id', "-1"))
+    except ValueError as e:
+        abort(500, description=e)
+
+    if received_author_id == -1:
+        abort(404, description=f"Book with id {received_author_id} not found")
+
+    author_to_delete = ds.get_one_book(received_author_id)
+    db.session.delete(author_to_delete)
+    db.session.commit()
+    outcome = {'result': 200, 'message' : f'Deletion of book: id-{received_author_id} successful'}
+    return return_to_home("Delete an author", outcome)
+
+
 
 @app.errorhandler(404)
 def page_not_found(e):

@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>"New Author"</title>
+{% endblock %}
+
+{% block add_book %}
+{% if authors|length == 0 %}
+    <form action="/add_author" method="get">
+        <label for="no_author_yet" class="form-label">There is no author yet. Please add author(s) first</label>
+
+        <button type="submit" id="no_author_yet" value="Add author">
+            Add Author
+        </button>
+    </form>
+{% else %}
+    <form action="/add_book" method="post">
+        <div class="mb-3 col-sm-5">
+            <label for="bookTitle" class="form-label">Book title</label>
+            <input type="text" class="form-control" id="bookTitle" name="book_title" placeholder="The title of the book">
+        </div>
+        <div class="mb-3 col-sm-5">
+            <label for="bookISBN" class="form-label col-sm-5">ISBN number</label>
+            <input type="text" class="form-control" id="bookISBN" name="book_isbn" placeholder="The ISBN number of the book">
+        </div>
+            <div class="mb-3 col-sm-5">
+                <label for="publicationYear" class="col-sm-5 form-label">Publication year</label>
+                <input type="number" class="form-control" id="publicationYear" name="publication_year" placeholder=2010>
+            </div>
+        <select class="col-sm-5 form-select" aria-label="Author" name="author_id">
+            <option selected>Open this menu with authors</option>
+                {% for name, author_id in authors %}
+                    <option value="{{ author_id }}">{{ name }}</option>
+                {% endfor %}
+        </select>
+        <button type="submit" value="Add-Book">
+            Add Book
+        </button>
+    </form>
+{% endif %}
+{% endblock %}
+

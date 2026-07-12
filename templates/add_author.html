@@ -33,8 +33,8 @@
         <div class="col-sm-5 p-5 border bg-light">
             <select class="col-sm-5 form-select" aria-label="Author" name="sim_author_nr">
                 <option selected>Open this menu with possible authors</option>
-                    {% for value, author in similar_authors %}
-                        <option value="{{ value }}">{{ author }}</option>
+                    {% for author_id, author in similar_authors %}
+                        <option value="{{ author_id }}">{{ author }}</option>
                     {% endfor %}
             </select>
         </div>
@@ -78,7 +78,6 @@
             Would you like to add this author manually?
         </p>
         <a href="{{ url_for('manual_add_author', author_name=saved_author_name) }}">
-            <p>DEBUG author_name: {{ author_name }}</p>
             <button type="button">
                 Add manually
             </button>

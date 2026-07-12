@@ -5,8 +5,12 @@
     {% block title %}
     {% endblock %}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
+    </script>
 </head>
 <body>
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold" href="/">
@@ -14,30 +18,111 @@
             </a>
 
             <div class="navbar-nav ms-auto">
-                <a class="nav-link active" href="/">Home</a>
-                <a class="nav-link" href="http://localhost:5000/add_author">Authors</a>
-                <a class="nav-link" href="http://localhost:5000/add_book">Books</a>
-                <a class="nav-link" href="http://localhost:5000/add_category">Categories</a>
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li><a class="nav-link active" href="/">Home</a></li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Authors
+                        </a>
+                            <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ host_port }}/add_author">Search & add</a></li>
+                            <li><a class="dropdown-item" href="{{ host_port }}/manually_add_author">Manually add</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ host_port }}/list_authors">List all</a></li>
+                            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#nameModal">edit author</a></li>
+                        </ul>
+                    </li>
+                   <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Books
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ host_port }}/add_book">Search & add</a></li>
+                            <li><a class="dropdown-item" href="{{ host_port }}/manually_add_book">Manually add</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('home') }}">List all</a></li>
+                        </ul>
+                   </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Categories (WIP)
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">New Category</a></li>
+                            <li><a class="dropdown-item" href="#">Connect with book</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#">List all</a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
+
+
+    <!-- Trigger button
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nameModal">
+      Enter Author Name
+    </button> -->
+
+    <!-- Modal -->
+    <div class="modal fade" id="nameModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Enter the name of the author</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="text" id="nameInput" class="form-control" placeholder="e.g. Charles Dickens">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="submitName()">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <section class="hero text-center">
         <div class="container">
             <h1 class="display-3 fw-bold">
                 {% block current_function %}
                 {% endblock %}
-            </h1>
-            <p class="lead mt-3">
 
-            </p>
-            {% block Latest_5 %}
+            </h1>
+            <p class="lead mt-3"></p>
+            {% block all_books %}
+            {% endblock%}
+            {% block all_authors %}
             {% endblock%}
             {% block add_book %}
             {% endblock%}
             {% block add_author %}
             {% endblock%}
+            {% block function_result %}
+            {% endblock %}
         </div>
     </section>
+<script>
+    async function submitName() {
+        const name = document.getElementById("nameInput").value;
+        console.log("Name entered:", name);
+        const body = new URLSearchParams();
+        body.append('user_name', name.trim());
+
+        const response = await fetch('/update_user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: body.toString()
+
+        });
+    }
+</script>
 </body>
+
 </html>

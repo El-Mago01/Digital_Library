@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>"Updating an author"</title>
+{% endblock %}
+
+{% block current_function %}
+{{ current_function }}
+{% endblock %}
+
+{% block add_book %}
+
+<form action="/updated_author" method="post">
+
+    <input
+        type="hidden"
+        name="author_id"
+        value="{{ author_to_update.author_id }}"
+    >
+
+    <div class="col-sm-6 p-5 border bg-light">
+        <label for="authorName" class="form-label">Author name</label>
+        <input type="text" class="form-control" id="authorName" name="author_name" placeholder="{{ author_to_update.name }}">
+        <label for="birthYear" class="form-label col-sm-5">Year of birth</label>
+        <input type="number" class="form-control" id="birthYear" name="birth_year" placeholder="{{ author_to_update.birth_year }}">
+        <label for="deathYear" class="col-sm-5 form-label">Year of death</label>
+        <input type="number" class="form-control" id="deathYear" name="death_year" placeholder="{{ author_to_update.death_year }}">
+        <label for="olidAuthor" class="form-label">OLID author</label>
+        <input type="text" class="form-control" id="olidAuthor" name="olid_author" placeholder="{{ author_to_update.olid_author }}">
+        <label for="coverImage" class="form-label">Cover-image source</label>
+        <input type="text" class="form-control" id="coverImage" name="cover_image" placeholder="{{ author_to_update.cover_img }}">
+
+    </div>
+
+
+    <div class="col-sm-6 p-5 border bg-light">
+        <button type="submit" value="Update-author">
+            Update Author
+        </button>
+        <a href="{{ url_for('home') }}">
+            <button type="button">
+                Abort
+            </button>
+        </a>
+    </div>
+</form>
+
+{% endblock %}
+

@@ -15,7 +15,7 @@ logging.basicConfig (
 
 app_name="MAGO_Library"
 host="http://127.0.0.1"
-port=5000
+port=5002
 host_port=host + ":" + str(port)
 
 app = Flask(__name__)
@@ -53,6 +53,7 @@ def return_to_home(current_function, outcome:dict, sorting_command:dict):
                            current_function=current_function,
                            outcome=outcome
                            )
+
 
 def return_to_authors_list(current_function, outcome:dict):
     all_authors = ds.get_all_authors_from_db()
@@ -587,7 +588,27 @@ def delete_author():
     outcome['message'] = outcome['message'] + f'Deleted author: {author_to_delete.name}'
     return return_to_authors_list("Delete an author", outcome)
 
+@app.route('/search', methods=['GET'])
+def search():
+    search_query = request.args.get('query', "")
+    sort_command = {"sort_by": "title", "direction": "asc"}
+    if search_query == "":
+        outcome = {'message': f'Empty Search query: "{search_query}"', 'result': 200}
+        sort_command={"sort_by": "titles", "direction": "asc"}
+        return return_to_home("Searching for titles and authors", outcome, sort_command)
 
+    sorted_books = ds.search_for_titles_and_authors(search_query, sort_command)
+    if len(sorted_books) == 0:
+        outcome = {'message': f'No matching books or authors found for: "{search_query}"', 'result': 200}
+    else:
+        outcome = {'message': f'Search successful: "{search_query}"', 'result': 200}
+    return render_template('home.html',
+        app_name = app_name,
+        host_port = host_port,
+        all_books = sorted_books,
+        current_function = "search",
+        outcome = outcome
+    )
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -601,4 +622,4 @@ def page_not_found(e):
 def page_not_found(e):
     return render_template('error.html', code=400, message=e.description), 400
 
-app.run(host='0.0.0.0', port=5000, debug=True)
+app.run(host='0.0.0.0', port=5002, debug=True)

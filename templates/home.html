@@ -70,6 +70,18 @@
     </div>
 </div>
 <!--This is the end of the sorting mechanism-->
+
+<!-- This is the search field-->
+<form action="{{ url_for('search') }}" method="GET" class="row g-3 align-items-end">
+    <div class="input-group mb-3">
+        <label for="search">SEARCH</label>
+      <input type="text" class="form-control" name="query" id="search"
+             placeholder="Search in book titles and author names" >
+      <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Search</button>
+    </div>
+</form>
+<!--This is the end of the sorting mechanism-->
+
 {% if all_books|length != 0 %}
     <div class="container">
         <div class="row">

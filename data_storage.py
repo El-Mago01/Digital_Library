@@ -107,7 +107,32 @@ def check_book_title_already_in_db(book_title:str)->list:
     print( list(enumerate(sim_books)))
     return list(enumerate(sim_books))
 
+def search_for_titles_and_authors(query:str, sorting_command):
+    books=[]
+    query = "%"+ query.strip().lower() + "%"
+    if sorting_command['sort_by'] == 'title':
+        if sorting_command['direction'] == 'asc':
+            stmt = (db.select(Book, Author).join(Author, Book.author_id == Author.author_id)
+                    .where(
+                        or_(func.lower(Book.title.like(query)),
+                            func.lower(Author.name.like(query))
+                           )
+                    ).order_by(Book.title.asc())
 
+            )
+        else:
+            stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Book.title.desc())
+    else:
+        if sorting_command['direction'] == 'asc':
+            stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Author.name.asc())
+        else:
+            stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Author.name.desc())
+    # stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Author.name.asc())
+    books_and_authors = db.session.execute(stmt).all()
+    for book, author in books_and_authors:
+        print(f"{book.title} - {author.name}")
+        books.append((book.title, author.name, book.publication_year, book.cover_img, book.book_id))
+    return books
 
 
 

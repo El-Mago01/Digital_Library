@@ -15,23 +15,27 @@
         name="saved_author_name"
         value="{{ saved_author_name }}"
     >
-    <div class="col-sm-5 p-5 border bg-light">
-        <label for="name" class="form-label">Book title</label>
+    <div class="col-sm-5 p-3 border bg-light">
+        <label for="name" class="form-label">Author name</label>
         <input type="text" class="form-control" id="name" name="author_name" value="{{ saved_author_name }}">
     </div>
-    <div class="col-sm-5 p-5 border bg-light">
+    <div class="col-sm-5 p-3 border bg-light">
         <label for="birth_year" class="form-label col-sm-5">Year of birth</label>
         <input type="number" class="form-control" id="birth_year" name="birth_year" placeholder=1971>
     </div>
-    <div class="col-sm-5 p-5 border bg-light">
+    <div class="col-sm-5 p-3 border bg-light">
         <label for="death_year" class="form-label col-sm-5">Year of death number</label>
         <input type="number" class="form-control" id="death_year" name="death_year" placeholder=1971>
     </div>
-        <div class="col-sm-5 p-5 border bg-light">
-        <label for="author_img" class="form-label">Book title</label>
+        <div class="col-sm-5 p-3 border bg-light">
+        <label for="author_olid" class="form-label">Author Open Library ID (OLID)</label>
+        <input type="text" class="form-control" id="author_olid" name="olid_author" value="{{ olid_author }}">
+    </div>
+        <div class="col-sm-5 p-3 border bg-light">
+        <label for="author_img" class="form-label">Link to author image</label>
         <input type="text" class="form-control" id="author_img" name="cover_img" value="{{ cover_img }}">
     </div>
-    <div class="col-sm-5 p-5 border bg-light">
+    <div class="col-sm-5 p-3 border bg-light">
         <button type="submit" value="Manually-Add-Author">
             Manually Add Author
         </button>

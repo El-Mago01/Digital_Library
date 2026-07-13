@@ -54,6 +54,17 @@ def return_to_home(current_function, outcome:dict):
                            outcome=outcome
                            )
 
+def return_to_authors_list(current_function, outcome:dict):
+    all_authors = ds.get_all_authors_from_db()
+    for author_id, name, olid_author, cover_img, birth_year, death_year in all_authors:
+        print(f"author_id: {author_id}, name: {name}, olid_author: {olid_author}, cover_image: {cover_img}, birth_year: {birth_year}, death_year: {death_year}")
+    return render_template('list_authors.html',
+                           app_name=app_name,
+                           host_port=host_port,
+                           all_authors=all_authors,
+                           current_function=current_function,
+                           outcome = outcome
+                           )
 """
 Routes
 -----------------------------------------------------------------------
@@ -235,27 +246,47 @@ def add_book():
 def manually_add_book():
     # 1st REQUEST, a GET request
     if request.method == 'GET':
+        authors=ds.get_all_authors_from_db()
 
         book_title = request.args.get('book_title', "")
-        logging.info(f"Adding Book with GET request for title: {book_title}")
+        logging.info(f"Manually adding a book with GET request for title: {book_title}")
 
         return render_template('manually_add_book.html',
                                current_function="Manually add a new book",
-                               saved_book_title=book_title
+                               saved_book_title=book_title,
+                               authors=authors
                                )
+
     # A post message is received. Now store the data
     logging.info("Adding Book with POST request")
+    try:
+        author_id = int(request.form.get('author_id', "-1"))
+        publication_year = request.form.get('publication_year', "0")
+        if len(publication_year) != 0:
+            publication_year = int(publication_year)
+
+    except (ValueError) as e:
+        abort(404, description=f"Please check your input. \nWrong values received "
+                               f"for either/both author or publication year. \n{e}.")
+    if author_id == -1:
+        abort(404, description=f"No author_id received. Please select an author")
+    title = request.form.get('book_title', "")
+    cover_img=df.compile_img_url(request.form.get('cover_img', ""))
+    if len(title) == "":
+        abort(404, description="No title was selected")
     received_book = Book(
-        title=request.form.get('book_title', ""),
-        birth_date=request.form.get('birth_date',"-"),
-        death_date=request.form.get('death_date',"-"),
+        title=title,
+        publication_year=publication_year,
+        author_id=author_id,
+        isbn=request.form.get('isbn', ""),
+        cover_img=cover_img,
         olid_book_id=""
     )
     logging.info(f"This book will be stored: {received_book}")
     db.session.add(received_book)
     db.session.commit()
     outcome = {'result': 200, 'message' : f'Successfully added book {received_book.title}'}
-    return render_template("home.html", outcome=outcome )
+    return return_to_home("home.html", outcome=outcome )
 
 @app.route('/update_book', methods=['GET'])
 def update_book():
@@ -301,7 +332,7 @@ def updated_book():
         book_to_update.olid_book_id = updated_olid_book_id
     if len(updated_cover_image) != 0:
         book_to_update.cover_img = df.compile_img_url(updated_cover_image, True)
-    if updated_author != "Open this menu with authors" and updated_author != "-1":
+    if updated_author != "Open to select author" and updated_author != "-1":
         book_to_update.author_id = updated_author
 
     db.session.commit()
@@ -329,8 +360,8 @@ def delete_book():
 @app.route('/list_authors', methods=['GET'])
 def list_authors():
     all_authors = ds.get_all_authors_from_db()
-    for author_id, name, olid_author, cover_img, birth_date, death_date in all_authors:
-        print(f"author_id: {author_id}, name: {name}, olid_author: {olid_author}, cover_image: {cover_img}, birth_year: {birth_date}, death_year: {death_date}")
+    for author_id, name, olid_author, cover_img, birth_year, death_year in all_authors:
+        print(f"author_id: {author_id}, name: {name}, olid_author: {olid_author}, cover_image: {cover_img}, birth_year: {birth_year}, death_year: {death_year}")
     return render_template('list_authors.html',
                            app_name=app_name,
                            host_port=host_port,
@@ -430,15 +461,15 @@ def add_author():
 
     received_author = Author(
         name=possible_authors[selected_author]['name'],
-        birth_date=possible_authors[selected_author].get('birth_date',"-"),
-        death_date=possible_authors[selected_author].get('death_date',"-"),
+        birth_year=possible_authors[selected_author].get('birth_year',"-"),
+        death_year=possible_authors[selected_author].get('death_year',"-"),
         olid_author=possible_authors[selected_author].get('olid_author',"")
     )
     logging.info(f"This author will be stored: {received_author}")
     db.session.add(received_author)
     db.session.commit()
     outcome = {'result': 200, 'message' : f'Successfully added author {received_author.name}'}
-    return return_to_home("Adding a new author", outcome=outcome )
+    return return_to_authors_list("Adding a new author", outcome=outcome )
 
 @app.route('/manually_add_author', methods=['POST','GET'])
 def manually_add_author():
@@ -456,16 +487,16 @@ def manually_add_author():
     logging.info("Adding Author with POST request")
     received_author = Author(
         name=request.form.get('author_name', ""),
-        birth_date=request.form.get('birth_date',"-"),
-        death_date=request.form.get('death_date',"-"),
-        cover_img="",
+        birth_year=request.form.get('birth_year',"-"),
+        death_year=request.form.get('death_year',"-"),
+        cover_img=df.compile_img_url(request.form.get("cover_img","")),
         olid_author=""
     )
     logging.info(f"This author will be stored: {received_author}")
     db.session.add(received_author)
     db.session.commit()
     outcome = {'result': 200, 'message' : f'Successfully added author {received_author.name}'}
-    return return_to_home("Manually adding an author", outcome=outcome )
+    return return_to_authors_list("Manually adding an author", outcome=outcome )
 
 
 @app.route('/update_author', methods=['GET'])
@@ -490,8 +521,12 @@ def update_author():
 def updated_author():
     try:
         author_id = int(request.form['author_id'])
-        birth_year = int(request.form.get('birth_date', "0"))
-        death_year = int(request.form.get('death_date', "0"))
+        birth_year = request.form.get('birth_year', "0")
+        death_year = request.form.get('death_year', "0")
+        if birth_year != "":
+            birth_year = int(birth_year)
+        if death_year != "":
+            death_year = int(death_year)
     except ValueError as e:
         abort(500, description=f"Updated failed due to : {e}")
     updated_name = request.form.get('author_name', "")
@@ -511,7 +546,7 @@ def updated_author():
         author_to_update.cover_img = df.compile_img_url(updated_cover_image, False)
     db.session.commit()
     outcome = {'result': 200, 'message' : f'Update of author: id-{author_id} successful'}
-    return return_to_home("Update an author", outcome)
+    return return_to_authors_list("Update an author", outcome)
 
 
 @app.route('/delete_author', methods=['GET'])
@@ -534,20 +569,20 @@ def delete_author():
     outcome['message'] = outcome['message'] + f'Deleted author: {author_to_delete.name}\n'
     db.session.commit()
     outcome['message'] = outcome['message'] + f'Deleted author: {author_to_delete.name}'
-    return return_to_home("Delete an author", outcome)
+    return return_to_authors_list("Delete an author", outcome)
 
 
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html', code=404, message=e.description), 404
+    return render_template('error.html', code=404, message=e.description), 404
 
 @app.errorhandler(500)
 def page_not_found(e):
-    return render_template('500.html', code=404, message=e.description), 500
+    return render_template('error.html', code=404, message=e.description), 500
 
 @app.errorhandler(400)
 def page_not_found(e):
-    return render_template('400.html', code=400, message=e.description), 400
+    return render_template('error.html', code=400, message=e.description), 400
 
 app.run(host='0.0.0.0', port=5000, debug=True)

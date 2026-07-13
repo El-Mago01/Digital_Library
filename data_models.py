@@ -17,15 +17,15 @@ class Author(db.Model):
     name = db.Column(db.String)
     olid_author = db.Column(db.String) # This is a reference key from open library
     cover_img = db.Column(db.String)
-    birth_date = db.Column(db.String)
-    death_date = db.Column(db.String)
+    birth_year = db.Column(db.String)
+    death_year = db.Column(db.String)
 
     def __repr__(self):
-        logging.info(f"Author: {self.name} author_id: {self.author_id} birth_date: {self.birth_date} death_date: {self.death_date}")
-        return f"Author: {self.name} author_id: {self.author_id} birth_date: {self.birth_date} death_date: {self.death_date}"
+        logging.info(f"Author: {self.name} author_id: {self.author_id} birth_year: {self.birth_year} death_year: {self.death_year}")
+        return f"Author: {self.name} author_id: {self.author_id} birth_year: {self.birth_year} death_year: {self.death_year}"
 
     def __str__(self):
-        return f"Author: {self.name} author_id: {self.author_id} birth_date: {self.birth_date} death_date: {self.death_date}"
+        return f"Author: {self.name} author_id: {self.author_id} birth_year: {self.birth_year} death_year: {self.death_year}"
 
 class Book(db.Model):
     __tablename__ = 'books'

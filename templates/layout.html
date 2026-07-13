@@ -30,8 +30,8 @@
                             <li><a class="dropdown-item" href="{{ host_port }}/manually_add_author">Manually add</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ host_port }}/list_authors">List all</a></li>
-                            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#nameModal">Edit author</a></li>
-                            <li><a class="dropdown-item" href="{{ host_port }}/delete_author">Delete author</a></li>
+                            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#nameModalAuthor">Edit author</a></li>
+                            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#nameModalDelAuthor">Delete author</a></li>
 
                         </ul>
                     </li>
@@ -44,6 +44,8 @@
                             <li><a class="dropdown-item" href="{{ host_port }}/manually_add_book">Manually add</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('home') }}">List all</a></li>
+                            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#nameModalBook">Edit book</a></li>
+                            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#nameModalDelBook">Delete book</a></li>
                         </ul>
                    </li>
                     <li class="nav-item dropdown">
@@ -63,30 +65,81 @@
     </nav>
 
 
-    <!-- Trigger button
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nameModal">
-      Enter Author Name
-    </button> -->
+
 
     <!-- Modal -->
-    <div class="modal fade" id="nameModal" tabindex="-1">
-      <div class="modal-dialog">
+<div class="modal fade" id="nameModalAuthor" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Enter the name of the author</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <input type="text" id="nameInput" class="form-control" placeholder="e.g. Charles Dickens">
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" onclick="submitName()">OK</button>
-          </div>
+            <div class="modal-header">
+                <h5 class="modal-title">Enter the ID of the author to be edited</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="number" id="authorId" class="form-control" placeholder="Author ID">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAuthor()">OK</button>
+            </div>
         </div>
-      </div>
     </div>
+</div>
 
+
+<div class="modal fade" id="nameModalBook" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enter the ID of the book to be edited</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+                <div class="modal-body">
+                    <input type="number" id="bookId" class="form-control" placeholder="Book ID">
+                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitBook()">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="nameModalDelAuthor" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enter the ID of the author to be deleted</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="number" id="authorIdDel" class="form-control" placeholder="Author ID">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAuthorDel()">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="nameModalDelBook" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enter the ID of the book to be deleted</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="number" id="bookIdDel" class="form-control" placeholder="Book ID">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitBookDel()">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
 
     <section class="hero text-center">
         <div class="container">
@@ -109,21 +162,58 @@
         </div>
     </section>
 <script>
-    async function submitName() {
-        const name = document.getElementById("nameInput").value;
-        console.log("Name entered:", name);
-        const body = new URLSearchParams();
-        body.append('user_name', name.trim());
 
-        const response = await fetch('/update_user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: body.toString()
+    function submitAuthor() {
+        const authorId = document.getElementById("authorId").value.trim();
+        console.log("Hello submitAuthor is triggered with authorId", authorId);
 
-        });
+        if (!authorId) {
+            return;
     }
+
+        window.location.href =
+            `/update_author?author_id=${encodeURIComponent(authorId)}`;
+}
+
+    function submitBook() {
+        const bookId = document.getElementById("bookId").value.trim();
+        console.log("Hello submitBook is triggered with book ID:", bookId);
+
+        if (!bookId) {
+            console.log("No bookId found!")
+            return;
+    }
+
+        window.location.href =
+            `/update_book?book_id=${encodeURIComponent(bookId)}`;
+}
+
+    function submitAuthorDel() {
+        const authorId = document.getElementById("authorIdDel").value.trim();
+        console.log("Hello submitAuthorDel is triggered with book ID:", authorId);
+
+        if (!authorId) {
+            console.log("No authorId found!")
+            return;
+    }
+
+        window.location.href =
+            `/delete_author?author_id=${encodeURIComponent(authorId)}`;
+}
+
+    function submitBookDel() {
+        const bookId = document.getElementById("bookIdDel").value.trim();
+        console.log("Hello submitBook is triggered with book ID:", bookId);
+
+        if (!bookId) {
+            console.log("No bookId found!")
+            return;
+    }
+
+        window.location.href =
+            `/delete_book?book_id=${encodeURIComponent(bookId)}`;
+}
+
 </script>
 </body>
 

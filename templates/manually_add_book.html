@@ -7,35 +7,66 @@
 {% block add_book %}
 {% if authors|length == 0 %}
     <form action="/add_author" method="get">
-        <label for="no_author_yet" class="form-label">There is no author yet. Please add author(s) first</label>
-
-        <button type="submit" id="no_author_yet" value="Add author">
-            Add Author
-        </button>
+        <div class="mb-3 col-sm-5">
+            <label for="no_author_yet" class="form-label">There is no author yet. Please add author(s) first</label>
+        </div>
+        <div class="mb-3 col-sm-5">
+            <button type="submit" id="no_author_yet" value="Add author">
+                Add Author
+            </button>
+        </div>
     </form>
 {% else %}
-    <form action="/add_book" method="post">
-        <div class="mb-3 col-sm-5">
-            <label for="bookTitle" class="form-label">Book title</label>
-            <input type="text" class="form-control" id="bookTitle" name="book_title" placeholder="The title of the book">
-        </div>
-        <div class="mb-3 col-sm-5">
-            <label for="bookISBN" class="form-label col-sm-5">ISBN number</label>
-            <input type="text" class="form-control" id="bookISBN" name="book_isbn" placeholder="The ISBN number of the book">
-        </div>
-            <div class="mb-3 col-sm-5">
-                <label for="publicationYear" class="col-sm-5 form-label">Publication year</label>
-                <input type="number" class="form-control" id="publicationYear" name="publication_year" placeholder=2010>
+    <form action="/manually_add_book" method="post">
+        <div class="mb-3 col-md-4 border bg-light">
+            <div class="">
+                <label for="bookTitle" class="form-label">Book title</label>
+                <input type="text" class="form-control" id="bookTitle" name="book_title" placeholder="The title of the book">
             </div>
-        <select class="col-sm-5 form-select" aria-label="Author" name="author_id">
-            <option selected>Open this menu with authors</option>
-                {% for name, author_id in authors %}
-                    <option value="{{ author_id }}">{{ name }}</option>
-                {% endfor %}
-        </select>
-        <button type="submit" value="Add-Book">
-            Add Book
-        </button>
+            <div class="">
+                <label for="bookISBN" class="form-label col-sm-5">ISBN number</label>
+                <input type="text" class="form-control" id="bookISBN" name="book_isbn" placeholder="The ISBN number of the book">
+            </div>
+                <div class="">
+                    <label for="publicationYear" class="form-label">Publication year</label>
+                    <input type="number" class="form-control" id="publicationYear" name="publication_year" placeholder=2010>
+                </div>
+                <div class="">
+                    <label for="cover_img" class="form-label">Book cover image link:</label>
+                    <input type="text" class="form-control" id="cover_img" name="cover_img" placeholder="https://covers.openlibrary.org/b/olid/OL26952962M-M.jpg?default=false">
+                </div>
+                <div class="">
+                    <label for="olid_id" class="form-label">Open library ID (OLID)</label>
+                    <input type="text" class="form-control" id="olid_id" name="olid_book_id" placeholder=OL385157A>
+                </div>
+
+            <div class="">
+                <label for="Authors" class="form-label">Author</label>
+                <select class="form-select" id=Authors aria-label="Author" name="author_id">
+                    <option selected>Open this menu with authors</option>
+                        {% for author_id, name, olid_author, cover_img, birth_year, death_year in authors %}
+                            <option value="{{ author_id }}">{{ name }} - {{ author_id }}</option>
+                        {% endfor %}
+                </select>
+                <p></p>
+                <label for="buttons" class="form-label"> </label>
+
+                <button type="submit" value="Add-Book">
+                    Add Book
+                </button>
+                <a href="{{ url_for('manually_add_author') }}">
+                    <button type="button">
+                        First add author
+                    </button>
+                </a>
+                <a href="{{ url_for('home') }}">
+                    <button type="button">
+                        Abort
+                    </button>
+                </a>
+                <p></p>
+            </div>
+        </div>
     </form>
 {% endif %}
 {% endblock %}

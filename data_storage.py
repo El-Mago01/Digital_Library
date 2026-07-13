@@ -7,7 +7,7 @@ def get_all_authors_from_db()->list:
     authors = []
     for author in author_list:
         authors.append((author.author_id, author.name, author.olid_author,
-                        author.cover_img, author.birth_date, author.death_date))
+                        author.cover_img, author.birth_year, author.death_year))
     print(authors)
     return authors
 

@@ -33,13 +33,16 @@
         <label for="coverImage" class="form-label">Cover-image source</label>
         <input type="text" class="form-control" id="coverImage" name="cover_image" placeholder="{{ book_to_update.cover_img }}">
     </div>
-
-    <select class="col-sm-6 p-3 border bg-light form-select" aria-label="Author" name="author_id">
-        <option selected>Open this menu with authors</option>
-        {% for author in authors %}
-            <option value="{{ author.author_id }}">{{ author.name }}</option>
-        {% endfor %}
-    </select>
+    <div class="col-sm-6 p-5 border bg-light">
+        <strong>For change of author, select one below:</strong>
+        <select class="col-sm-6 p-3 border bg-light form-select" aria-label="Author" name="author_id">
+            <!-- Do NOT CHANGE the option selected text. If you do, you must change the code in app.py            -->
+            <option selected>Open to select author</option>
+            {% for author in authors %}
+                <option value="{{ author[0] }}">{{ author[1] }}</option>
+            {% endfor %}
+        </select>
+    </div>
     <div class="col-sm-6 p-5 border bg-light">
         <button type="submit" value="Update-Book">
             Update Book

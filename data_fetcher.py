@@ -107,8 +107,8 @@ def fetch_author_info(user_provided_author:str)->list:
                 order_number += 1
                 author_dict['name'] = found_author
                 author_dict['olid_author'] = author_details.get('key',"")
-                author_dict['birth_year'] = author_details.get('birth_date')
-                author_dict['death_year'] = author_details.get('death_date')
+                author_dict['birth_year'] = author_details.get('birth_year')
+                author_dict['death_year'] = author_details.get('death_year')
                 author_dict['death_year'] = author_details.get('top_work')
                 author_dict['cover_img'] = "Not Found"
                 author_dict['top_subjects'] = authors_found.get('top_subjects')
@@ -141,8 +141,8 @@ def fetch_new_author(author_olid: str)-> Author:
     new_author = Author(
         name=author_details.get('name', ""),
         cover_img=compile_img_url(author_olid, False),
-        birth_date=fetch_year_from_input(author_details.get('birth_date', "- - -")),
-        death_date=fetch_year_from_input(author_details.get('death_date', "- - -")),
+        birth_year=fetch_year_from_input(author_details.get('birth_year', "- - -")),
+        death_year=fetch_year_from_input(author_details.get('death_year', "- - -")),
         olid_author=author_olid
     )
     print(new_author)

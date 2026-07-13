@@ -45,14 +45,13 @@ def compile_img_url(olid:str, img_for_book:bool=True)->str:
         if "https" in olid:
             cover_uri = olid #This is the case if the user is changing the uri
         else:
-            cover_uri = BOOK_IMAGE_URL + olid
+            cover_uri = BOOK_IMAGE_URL + olid + "-M.jpg?default=false"
     else:
         # The case that the uri will be generated for an author image
         if "https" in olid:
             cover_uri = olid
         else:
-            cover_uri = AUTHOR_IMAGE_URL + olid
-    cover_uri += "-M.jpg?default=false"
+            cover_uri = AUTHOR_IMAGE_URL + olid + "-M.jpg?default=false"
     try:
         cover_img = requests.get(cover_uri, timeout=TIMEOUTVALUE)
     except Exception as e:

@@ -14,9 +14,6 @@ logging.basicConfig(
 )
 
 app_name = "MAGO_Library"
-host = "http://127.0.0.1"
-port = 5002
-host_port = host + ":" + str(port)
 
 app = Flask(__name__)
 """
@@ -24,7 +21,7 @@ Setting the Database URI
 Configure the database connection by specifying the database Uniform Resource Identifier (URI) after the initialized
 Flask app in app.py, which is a string that specifies the connection details and location of a database.
 It is commonly used to establish a connection between an application and a database management system (DBMS).
-The URI contains information such as the DBMS type, host, port, database name, and authentication credentials.
+The URI contains information such as the DBMS type, database name, and authentication credentials.
 
 For this demonstration we will be using an SQLite3 database. To avoid path issues with Flask,
 we will set the database URI using an absolute path:
@@ -60,7 +57,6 @@ def return_to_home(current_function, outcome: dict, sorting_command: dict):
     return render_template(
         "home.html",
         app_name=app_name,
-        host_port=host_port,
         all_books=all_books,
         current_function=current_function,
         outcome=outcome,
@@ -85,7 +81,6 @@ def return_to_authors_list(current_function, outcome: dict):
     return render_template(
         "list_authors.html",
         app_name=app_name,
-        host_port=host_port,
         all_authors=all_authors,
         current_function=current_function,
         outcome=outcome,
@@ -416,7 +411,6 @@ def update_book():
     return render_template(
         "update_book.html",
         app_name=app_name,
-        host_port=host_port,
         book_to_update=book_to_update,
         current_function="Updating a book",
         authors=authors,
@@ -504,7 +498,6 @@ def list_authors():
     return render_template(
         "list_authors.html",
         app_name=app_name,
-        host_port=host_port,
         all_authors=all_authors,
         current_function="Listing all authors",
     )
@@ -686,7 +679,6 @@ def update_author():
     return render_template(
         "update_author.html",
         app_name=app_name,
-        host_port=host_port,
         author_to_update=author_to_update,
         current_function="Updating an author",
     )
@@ -797,7 +789,6 @@ def search():
     return render_template(
         "home.html",
         app_name=app_name,
-        host_port=host_port,
         all_books=sorted_books,
         current_function="search",
         outcome=outcome,

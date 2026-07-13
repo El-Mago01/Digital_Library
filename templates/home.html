@@ -10,7 +10,7 @@
     {% if outcome is defined %}
         {% if outcome.result == 200 %}
             <div class="sticky-bottom">
-                <p> {{ outcome.message }} </p>
+                <p> <strong>Messages: </strong>{{ outcome.message }} </p>
             </div>
         {% endif %}
     {% endif %}
@@ -22,6 +22,54 @@
 
 {% block all_books %}
 <h2>See below the available books:</h2>
+<!-- Sorting toolbar -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('home') }}"
+              method="GET"
+              class="row g-3 align-items-end">
+
+            <!-- Sort field -->
+            <div class="col-md-5">
+                <label for="sort_by" class="form-label">
+                    Sort by
+                </label>
+
+                <select id="sort_by"
+                        name="sort_by"
+                        class="form-select">
+
+                    <option value="author">Author</option>
+                    <option value="title">Book title</option>
+                </select>
+            </div>
+
+            <!-- Sort direction -->
+            <div class="col-md-5">
+                <label for="direction" class="form-label">
+                    Direction
+                </label>
+
+                <select id="direction"
+                        name="direction"
+                        class="form-select">
+
+                    <option value="asc">Ascending (A–Z)</option>
+                    <option value="desc">Descending (Z–A)</option>
+                </select>
+            </div>
+
+            <!-- Submit button -->
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    Sort
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+<!--This is the end of the sorting mechanism-->
 {% if all_books|length != 0 %}
     <div class="container">
         <div class="row">

@@ -1,8 +1,11 @@
 from data_models import db, Author, Book
 from sqlalchemy import func, or_
 
-def get_all_authors_from_db()->list:
-    stmt = db.select(Author).order_by(Author.name.asc())
+def get_all_authors_from_db(direction:str="asc")->list:
+    if direction == "asc":
+        stmt = db.select(Author).order_by(Author.name.asc())
+    else:
+        stmt = db.select(Author).order_by(Author.name.desc())
     author_list = db.session.execute(stmt).scalars().all()
     authors = []
     for author in author_list:
@@ -22,9 +25,19 @@ def get_authors_name_and_ids()->list:
 
 
 
-def get_all_books_elements(direction:str="asc")->list:
+def get_all_books_elements(sorting_command:dict)->list:
     books=[]
-    stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Book.title.asc())
+    if sorting_command['sort_by'] == 'title':
+        if sorting_command['direction'] == 'asc':
+            stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Book.title.asc())
+        else:
+            stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Book.title.desc())
+    else:
+        if sorting_command['direction'] == 'asc':
+            stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Author.name.asc())
+        else:
+            stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Author.name.desc())
+    # stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Author.name.asc())
     books_and_authors = db.session.execute(stmt).all()
     for book, author in books_and_authors:
         print(f"{book.title} - {author.name}")

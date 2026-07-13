@@ -41,8 +41,8 @@ with app.app_context():
 Helper functions
 -----------------------------------------------------------------------
 """
-def return_to_home(current_function, outcome:dict):
-    all_books = ds.get_all_books_elements()
+def return_to_home(current_function, outcome:dict, sorting_command:dict):
+    all_books = ds.get_all_books_elements(sorting_command)
     print(type(all_books))
     for title, author_name, publication_year, cover_image, book_id in all_books:
         print(f"title: {title}, author: {author_name}, publication_year: {publication_year}, cover_image: {cover_image}")
@@ -71,8 +71,11 @@ Routes
 """
 @app.route('/', methods=['GET'])
 def home():
-    outcome = {'result': 200, 'message': 'empty'}
-    return return_to_home("Current books in MAGO Library", outcome)
+    outcome = {'result': 200, 'message': 'No messages'}
+    sorting_command = {'sort_by': request.args.get('sort_by', "books"),
+                       'direction': request.args.get('direction', "asc")}
+
+    return return_to_home("Current books in MAGO Library", outcome, sorting_command)
 
 
 
@@ -140,7 +143,9 @@ def add_book():
             possible_books = df.fetch_book_info(book_title, author_name)
         except df.BookFetchException as e:
             outcome = {'result': 200, 'message': f'Could not fetch book/author information due to an exception: \n{e}. \nTry again later.'}
-            return return_to_home("Adding a new author", outcome=outcome)
+            sorting_command = {'sort_by': "books",
+                               'direction': "asc"}
+            return return_to_home("Adding a new author", outcome, sorting_command)
         # possible_books contains a list of dictionaries with specific info
         # I.e. title, author, olid_book_id, ordernumber
         book_not_found = True
@@ -170,7 +175,9 @@ def add_book():
             possible_books = df.fetch_book_info(book_title, author_name)
         except df.BookFetchException as e:
             outcome = {'result': 200, 'message': f'Could not fetch book/author information due to an exception: \n{e}. \nTry again later.'}
-            return return_to_home("Adding a new author", outcome=outcome)
+            sorting_command = {'sort_by': "books",
+                               'direction': "asc"}
+            return return_to_home("Adding a new author", outcome, sorting_command)
         available_books = []
         for book, author_name in possible_books:
             my_dict=book.serialize()
@@ -240,7 +247,9 @@ def add_book():
         db.session.commit()
         outcome_message += f"<p>Successfully added book {book_to_store.title}</p>"
         outcome = {'result': 200, 'message' : outcome_message}
-    return return_to_home("Adding a book", outcome=outcome )
+        sorting_command = {'sort_by': "books",
+                           'direction': "asc"}
+    return return_to_home("Adding a book", outcome, sorting_command)
 
 @app.route('/manually_add_book', methods=['POST','GET'])
 def manually_add_book():
@@ -286,7 +295,9 @@ def manually_add_book():
     db.session.add(received_book)
     db.session.commit()
     outcome = {'result': 200, 'message' : f'Successfully added book {received_book.title}'}
-    return return_to_home("home.html", outcome=outcome )
+    sorting_command = {'sort_by': "books",
+                       'direction': "asc"}
+    return return_to_home("home.html", outcome, sorting_command)
 
 @app.route('/update_book', methods=['GET'])
 def update_book():
@@ -337,7 +348,9 @@ def updated_book():
 
     db.session.commit()
     outcome = {'result': 200, 'message' : f'Update of book: id-{book_id} successful'}
-    return return_to_home("Update a book", outcome)
+    sorting_command = {'sort_by': "books",
+                       'direction': "asc"}
+    return return_to_home("Update a book", outcome, sorting_command)
 
 
 @app.route('/delete_book', methods=['GET'])
@@ -354,12 +367,15 @@ def delete_book():
     db.session.delete(book_to_delete)
     db.session.commit()
     outcome = {'result': 200, 'message' : f'Deletion of book: id-{received_book_id} successful'}
-    return return_to_home("Delete a book", outcome)
+    sorting_command = {'sort_by': "books",
+                       'direction': "asc"}
+    return return_to_home("Delete a book", outcome, sorting_command)
 
 
 @app.route('/list_authors', methods=['GET'])
 def list_authors():
-    all_authors = ds.get_all_authors_from_db()
+    direction=request.args.get('direction', "asc")
+    all_authors = ds.get_all_authors_from_db(direction)
     for author_id, name, olid_author, cover_img, birth_year, death_year in all_authors:
         print(f"author_id: {author_id}, name: {name}, olid_author: {olid_author}, cover_image: {cover_img}, birth_year: {birth_year}, death_year: {death_year}")
     return render_template('list_authors.html',

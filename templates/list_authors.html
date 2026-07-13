@@ -22,6 +22,42 @@
 
 {% block all_authors %}
 <h2>See below the available authors:</h2>
+
+<!-- Sorting toolbar -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('list_authors') }}"
+              method="GET"
+              class="row g-3 align-items-end">
+
+            <!-- Sort direction -->
+            <div class="col-md-5">
+                <label for="direction" class="form-label">
+                    Direction
+                </label>
+
+                <select id="direction"
+                        name="direction"
+                        class="form-select">
+
+                    <option value="asc">Ascending (A–Z)</option>
+                    <option value="desc">Descending (Z–A)</option>
+                </select>
+            </div>
+
+            <!-- Submit button -->
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    Sort
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+<!--This is the end of the sorting mechanism-->
+
+
 {% if all_authors|length != 0 %}
     <div class="container">
         <div class="row">

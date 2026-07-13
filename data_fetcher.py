@@ -19,51 +19,40 @@ logging.basicConfig (
 class BookFetchException(Exception):
     pass
 
-BASE_BOOK_INFO_URL = "https://openlibrary.org/search.json?title="
+BASE_BOOK_INFO_URL = "https://openlibrary.org/search.json"
 FIELDS = "fields=key,title,author_name,editions,editions.key,editions.title,editions.ebook_access,editions.language,isbn"
 BASE_AUTHOR_INFO_URL = "https://openlibrary.org/search/authors.json?q="
 SPECIFIC_BOOK_URL = "https://openlibrary.org/"
 SPECIFIC_AUTHOR_URL = "https://openlibrary.org/authors/"
-SPECIFIC_COVER_IMAGE_URL = "https://covers.openlibrary.org/b/olid/"
-COVER_IMAGE_AUTHOR = "https://covers.openlibrary.org/a/olid/"
+BOOK_IMAGE_URL = "https://covers.openlibrary.org/b/olid/"
+AUTHOR_IMAGE_URL = "https://covers.openlibrary.org/a/olid/"
 MAX_TITLE = 50
 MAX_AUTHOR = 40
 
 TIMEOUTVALUE = 20
-def compile_book_cover(key:str)->str:
+def compile_img_url(olid:str, img_for_book:bool=True)->str:
     """
-    This book cover image fetcher, doesn't actually fetch the cover image.
+    This image url creator, doesn't actually fetch the cover image.
     It will compile an image URI, based upon the olid and checks if this image indeed
     exists.
-    :param isbn:
+    :param key: The olid for the book or author
+    :param book: An indicator if the image is for a book or an author
     :return:
     """
-    if "https" in key:
-        cover_uri = key
-    else:
-        cover_uri = SPECIFIC_COVER_IMAGE_URL + key + "-M.jpg?default=false"
-    try:
-        cover_img = requests.get(cover_uri, timeout=TIMEOUTVALUE)
-    except Exception as e:
-        print("Error: no timely answer received from Open Library API")
-        raise BookFetchException("The request to check cover image timed out")
-    if cover_img.status_code == 200:
-        return cover_uri
-    else:
-        return "Not Found"
 
-def compile_author_cover(olid: str) -> str:
-    """
-    This author cover image fetcher, doesn't actually fetch the cover image.
-    It will compile an image URI, based upon the olid and checks if this image indeed
-    exists.
-    :param isbn:
-    :return:
-    """
-    if "https" in olid:
-        cover_uri = olid
+    if img_for_book:
+        # The case that the uri will be generated for an author image
+        if "https" in olid:
+            cover_uri = olid #This is the case if the user is changing the uri
+        else:
+            cover_uri = BOOK_IMAGE_URL + olid
     else:
-        cover_uri = COVER_IMAGE_AUTHOR + olid + "-M.jpg"
+        # The case that the uri will be generated for an author image
+        if "https" in olid:
+            cover_uri = olid
+        else:
+            cover_uri = AUTHOR_IMAGE_URL + olid
+    cover_uri += "-M.jpg?default=false"
     try:
         cover_img = requests.get(cover_uri, timeout=TIMEOUTVALUE)
     except Exception as e:
@@ -74,17 +63,19 @@ def compile_author_cover(olid: str) -> str:
     else:
         return "Not Found"
 
-def author_matches(provided_author:str, open_lib_author:str)->bool:
-    print(f"checking if provided author {provided_author}, matches with fetched author {open_lib_author}")
-    prov_author_names = provided_author.split()
-    for names in prov_author_names:
-        if names.lower() not in open_lib_author.lower():
-            return False
-    return True
+
+# def author_matches(provided_author:str, open_lib_author:str)->bool:
+#     print(f"checking if provided author {provided_author}, matches with fetched author {open_lib_author}")
+#     prov_author_names = provided_author.split()
+#     for names in prov_author_names:
+#         if names.lower() not in open_lib_author.lower():
+#             return False
+#     return True
 
 def fetch_author_info(user_provided_author:str)->list:
     """
-    This function fetches
+    This function fetches all the relevant authors for the "add author" search query. As such, the
+    information is enough to instantiate the Author object.
     :param user_provided_author:
     :return:
     """
@@ -116,10 +107,11 @@ def fetch_author_info(user_provided_author:str)->list:
                 author_dict['order_number'] = order_number
                 order_number += 1
                 author_dict['name'] = found_author
-                author_dict['key'] = author_details.get('key',"")
+                author_dict['olid_author'] = author_details.get('key',"")
                 author_dict['birth_year'] = author_details.get('birth_date')
                 author_dict['death_year'] = author_details.get('death_date')
                 author_dict['death_year'] = author_details.get('top_work')
+                author_dict['cover_img'] = "Not Found"
                 author_dict['top_subjects'] = authors_found.get('top_subjects')
                 candidate_authors.append(author_dict)
     print("We encountered this/these author(s): ", candidate_authors)
@@ -149,7 +141,7 @@ def fetch_new_author(author_olid: str)-> Author:
 
     new_author = Author(
         name=author_details.get('name', ""),
-        cover_img=compile_author_cover(author_olid),
+        cover_img=compile_img_url(author_olid, False),
         birth_date=fetch_year_from_input(author_details.get('birth_date', "- - -")),
         death_date=fetch_year_from_input(author_details.get('death_date', "- - -")),
         olid_author=author_olid
@@ -166,10 +158,22 @@ def fetch_book_info(user_provided_book:str, user_provided_author_name:str)->list
     """
 
     candidate_books = []
-    search_string = user_provided_book.split()
-    search_string = "+".join(search_string) + "&author="
-    author_string = user_provided_author_name.split()
-    search_string += "+".join(author_string)
+    author_names = []
+
+    search_string = ""
+    if len(user_provided_book) > 0:
+        search_string = "?title="
+        split_string = user_provided_book.split()
+        search_string += "+".join(split_string)
+    if len(user_provided_author_name) > 0:
+        author_string = user_provided_author_name.split()
+        if len(search_string) > 0: #in this case, a title was provided
+            search_string += "&author="
+        else:
+            search_string = "?author="
+        search_string += "+".join(author_string)
+    if len(search_string) == 0:
+        raise BookFetchException("Both book title and author name are empty..")
     search_string += "&fields=*"
 
     request_URL1 = f"{BASE_BOOK_INFO_URL}{search_string}"
@@ -186,7 +190,6 @@ def fetch_book_info(user_provided_book:str, user_provided_author_name:str)->list
     book_details = book_info.json()
     print("Number of books found=", book_details.get('numFound', 0))
     if book_details.get('numFound', 0) > 0:
-        candidate_books = []
         for book_found in book_details['docs']:
             logging.info(f"Result of GET response with URL:\n{request_URL1}:\n{book_found}")
             found_book = book_found.get('title',"")
@@ -197,14 +200,15 @@ def fetch_book_info(user_provided_book:str, user_provided_author_name:str)->list
                     olid_author_id = book_found.get('author_key', ""),
                     isbn = book_found.get('isbn', [""])[0],
                     title = found_book.strip()[:MAX_TITLE],
-                    cover_img = compile_book_cover(cover_key),
+                    cover_img = compile_img_url(cover_key, True),
                     author_id = -1,
                     publication_year = book_found.get('first_publish_year', ""),
                 )
                 author_name = book_found.get('author_name', [""])[0].strip()[:MAX_AUTHOR]
-                candidate_books.append(new_book)
-    print(f"We encountered this/these book(s) from open library from author{author_name}", candidate_books)
-    return candidate_books, author_name
+                candidate_books.append((new_book, author_name))
+        print(f"We encountered this/these book(s) from open library from author{author_names}", candidate_books)
+        return candidate_books
+    return []
 
 def fetch_new_book(selected_book: dict)->Book:
     book_to_store = Book(

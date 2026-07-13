@@ -29,7 +29,7 @@
             <div class="col-lg-3">
                 <div class="card-group" style="margin-top:10px;">
                     <div class="card p-5 border bg-light" style="height: 600px;">
-                        {% if "not found" in cover_image|lower() %}
+                        {% if "Not Found" in cover_img %}
                             <img src="{{ url_for('static', filename='images/default_author.png') }}" class="card-img-top" alt="Logo">
                         {% else %}
                             <img src="{{ cover_img }}" class="img-fluid card-img-top" alt="...">

@@ -48,7 +48,7 @@
             <select class="col-sm-5 form-select" aria-label="Book" name="pos_book_id">
                 <option selected>Open this menu with possible books</option>
                     {% for book in possible_books %}
-                        <option value="{{ book['olid_book_id'] }}">{{ book['title'] }} - {{ author_name}} - {{ book['publication_year'] }}</option>
+                        <option value="{{ book['olid_book_id'] }}">{{ book['title'] }} - {{ book['author_name'] }} - {{ book['publication_year'] }}</option>
                     {% endfor %}
             </select>
         </div>
@@ -77,7 +77,7 @@
             <input type="text" class="form-control" id="bookTitle" name="book_title" placeholder="{{ saved_book_title }}">
         </div>
         <div class="col-sm-5">
-            <label for="bookAuthor" class="form-label">Title of the book:</label>
+            <label for="bookAuthor" class="form-label">Author of the book:</label>
             <input type="text" class="form-control" id="bookAuthor" name="author_name" placeholder="{{ saved_author_name }}">
         </div>
         <div class="col-sm-5 p-5 border bg-light">

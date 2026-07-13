@@ -74,6 +74,14 @@ def check_author_already_in_db(author_name:str, author_olid:str="")->list:
     # print( list(enumerate(sim_authors)))
     return sim_authors
 
+def get_all_books_from_author(author_id:int)->list:
+    stmt = db.select(Book).where(
+        Book.author_id == author_id
+    )
+    book_list = db.session.execute(stmt).scalars().all()
+    return book_list
+
+
 def check_book_title_already_in_db(book_title:str)->list:
     sim_books=[]
     book_title = book_title.strip()

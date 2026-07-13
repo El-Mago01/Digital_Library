@@ -83,8 +83,8 @@ def add_book():
     In this is case, the add_book.html is prefilled with the list of similar_books. If the user selects
     a book from this list, the session is aborted.
     2. from data_fetcher, the fetch_book_info is called, with the title and author as search items.
-    The call is made to open library to search for this title/author. A list of dicts with all relevant bookinfo
-    is returned. The title/author/publishing_year are displayed in a drop-down list with the olid_key as value that
+    The call is made to open library to search for this title/author. A list of dicts with all relevant books
+    is returned. The title/author/publishing_year are displayed in a drop-down list with the olid_book_id as value that
     will be returned for the selected book.  The user has now 2 options, either it selects a book from the list and press
     "add book" or clicks "Manually add books".
     STEP 3: 2nd POST request to add the selected book (and indirectly the author if needed)
@@ -126,12 +126,12 @@ def add_book():
         # possible books found on the open library. If there are no similar_books found
         # The user will only receive the possible book selection
         try:
-            possible_books, author_name = df.fetch_book_info(book_title, author_name)
+            possible_books = df.fetch_book_info(book_title, author_name)
         except df.BookFetchException as e:
             outcome = {'result': 200, 'message': f'Could not fetch book/author information due to an exception: \n{e}. \nTry again later.'}
             return return_to_home("Adding a new author", outcome=outcome)
-        # possible_books contains a list of dictionaries with limited info
-        # I.e. title, author, key, ordernumber
+        # possible_books contains a list of dictionaries with specific info
+        # I.e. title, author, olid_book_id, ordernumber
         book_not_found = True
         if len(possible_books) != 0:
             book_not_found = False
@@ -141,8 +141,7 @@ def add_book():
                                saved_author_name=saved_author_name,
                                similar_books=similar_stored_books,
                                current_function="Add a new book",
-                               book_not_found=book_not_found,
-                               author_name=author_name
+                               book_not_found=book_not_found
                                )
     # STEP 3: 2nd POST request to add the selected book (and indirectly the author if needed)
     # Here there are 3 scenario's for this stage:
@@ -157,13 +156,14 @@ def add_book():
     if len(book_title) != 0 or len(author_name) != 0:
         similar_stored_books = ds.check_book_title_already_in_db(book_title)
         try:
-            possible_books, author_name = df.fetch_book_info(book_title, author_name)
+            possible_books = df.fetch_book_info(book_title, author_name)
         except df.BookFetchException as e:
             outcome = {'result': 200, 'message': f'Could not fetch book/author information due to an exception: \n{e}. \nTry again later.'}
             return return_to_home("Adding a new author", outcome=outcome)
         available_books = []
-        for book in possible_books:
+        for book, author_name in possible_books:
             my_dict=book.serialize()
+            my_dict['author_name'] = author_name
             available_books.append(my_dict)
 
         book_not_found = True
@@ -176,7 +176,6 @@ def add_book():
                                similar_books=similar_stored_books,
                                current_function="Add a new book",
                                book_not_found=book_not_found,
-                               author_name=author_name
                                )
 
     sim_stored_book = request.form.get('sim_book_nr', "")
@@ -186,7 +185,7 @@ def add_book():
     try:
         books_string = request.form.get('possible_books', "")
         possible_books = json.loads(books_string)
-        key = request.form.get('pos_book_id', "")
+        selected_olid_book = request.form.get('pos_book_id', "")
         outcome_message = ""
     except (TypeError, ValueError) as e:
         abort(500, description=f"Unexpected returned input provided by the add_book.html form . {e}")
@@ -195,7 +194,7 @@ def add_book():
     author_id = -1
     for the_book in possible_books:
         try:
-            if the_book['olid_book_id'] == key and key != "":
+            if the_book['olid_book_id'] == selected_olid_book and selected_olid_book != "":
                 book_dict_to_store = the_book
                 author_olid = the_book.get('olid_author_id')[0]
                 author_id_and_name = ds.check_author_already_in_db(the_book["title"], author_olid)
@@ -213,7 +212,7 @@ def add_book():
 
                 # Note, if author is already stored, nothing needs to be done. Only the author_id is returned.
         except KeyError as e:
-            message="Internal Error: could not find the author_olid or book key."
+            message="Internal Error: could not find the olid_author or olid_book."
             logging.info(message)
             abort(500, descripton=message)
 
@@ -250,7 +249,7 @@ def manually_add_book():
         title=request.form.get('book_title', ""),
         birth_date=request.form.get('birth_date',"-"),
         death_date=request.form.get('death_date',"-"),
-        key=""
+        olid_book_id=""
     )
     logging.info(f"This book will be stored: {received_book}")
     db.session.add(received_book)
@@ -301,7 +300,7 @@ def updated_book():
     if len(updated_olid_book_id) != 0:
         book_to_update.olid_book_id = updated_olid_book_id
     if len(updated_cover_image) != 0:
-        book_to_update.cover_img = df.compile_book_cover(updated_cover_image)
+        book_to_update.cover_img = df.compile_img_url(updated_cover_image, True)
     if updated_author != "Open this menu with authors" and updated_author != "-1":
         book_to_update.author_id = updated_author
 
@@ -433,7 +432,7 @@ def add_author():
         name=possible_authors[selected_author]['name'],
         birth_date=possible_authors[selected_author].get('birth_date',"-"),
         death_date=possible_authors[selected_author].get('death_date',"-"),
-        olid_author=possible_authors[selected_author].get('key',"")
+        olid_author=possible_authors[selected_author].get('olid_author',"")
     )
     logging.info(f"This author will be stored: {received_author}")
     db.session.add(received_author)
@@ -459,7 +458,8 @@ def manually_add_author():
         name=request.form.get('author_name', ""),
         birth_date=request.form.get('birth_date',"-"),
         death_date=request.form.get('death_date',"-"),
-        key=""
+        cover_img="",
+        olid_author=""
     )
     logging.info(f"This author will be stored: {received_author}")
     db.session.add(received_author)
@@ -508,7 +508,7 @@ def updated_author():
     if death_year != 0:
         author_to_update.death_year = death_year
     if len(updated_cover_image) != 0:
-        author_to_update.cover_img = df.compile_book_cover(updated_cover_image)
+        author_to_update.cover_img = df.compile_img_url(updated_cover_image, False)
     db.session.commit()
     outcome = {'result': 200, 'message' : f'Update of author: id-{author_id} successful'}
     return return_to_home("Update an author", outcome)
@@ -524,10 +524,16 @@ def delete_author():
     if received_author_id == -1:
         abort(404, description=f"Book with id {received_author_id} not found")
 
-    author_to_delete = ds.get_one_book(received_author_id)
+    author_to_delete = ds.get_one_author(received_author_id)
+    books_to_delete = ds.get_all_books_from_author(received_author_id)
+    outcome = {'result': 200, 'message' : f'Deleting of author: {author_to_delete.name}\n'}
+    for book in books_to_delete:
+        db.session.delete(book)
+        outcome['message'] =  outcome['message'] + f'Deleted book: {book.title}\n'
     db.session.delete(author_to_delete)
+    outcome['message'] = outcome['message'] + f'Deleted author: {author_to_delete.name}\n'
     db.session.commit()
-    outcome = {'result': 200, 'message' : f'Deletion of book: id-{received_author_id} successful'}
+    outcome['message'] = outcome['message'] + f'Deleted author: {author_to_delete.name}'
     return return_to_home("Delete an author", outcome)
 
 

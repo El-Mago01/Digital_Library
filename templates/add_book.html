@@ -8,107 +8,109 @@
 {{ current_function }}
 {% endblock %}
 
-{% block add_book %}
-
-<form action="/add_book" method="post">
-    <input
-        type="hidden"
-        name="saved_book_title"
-        value="{{ saved_book_title }}"
-    >
-
-    {% if possible_books|length != 0%}
-    <input
-        type="hidden"
-        name="possible_books"
-        value='{{ possible_books | tojson }}'>
-<!--        Store the possible books in json format-->
-
-    <div class="col-sm-5">
-        <label for="savedBookTitle" class="form-label">Title of the book:</label>
-        <input type="text" class="form-control" id="savedBookTitle" name="book_title" placeholder="{{ saved_book_title }}">
-    </div>
-    <div class="col-sm-5">
-        <label for="savedBookAuthor" class="form-label">Author the book:</label>
-        <input type="text" class="form-control" id="savedBookAuthor" name="author_name" placeholder="{{ saved_author_name }}">
-    </div>
-
-    {% if similar_books | length != 0%}
-        <div class="col-sm-5 p-5 border bg-light">
-            <select class="col-sm-5 form-select" aria-label="Book" name="sim_book_nr">
-                <option selected>Is book already stored? Click here!</option>
-                    {% for value, book in similar_books %}
-                        <option value="{{ value }}">{{ book[0] }} - {{ book[1] }} - {{ book[2] }}</option>
-                    {% endfor %}
-            </select>
-        </div>
+{% block function_result %}
+    {% if outcome is defined %}
+        {% if outcome.result == 200 %}
+            <div class="sticky-bottom">
+                <p> <strong>Messages: </strong>{{ outcome.message }} </p>
+            </div>
+        {% endif %}
     {% endif %}
+{% endblock %}
 
-        <div class="col-sm-5 p-5 border bg-light">
-            <select class="col-sm-5 form-select" aria-label="Book" name="pos_book_id">
-                <option selected>Open this menu with possible books</option>
-                    {% for book in possible_books %}
-                        <option value="{{ book['olid_book_id'] }}">{{ book['title'] }} - {{ book['author_name'] }} - {{ book['publication_year'] }}</option>
-                    {% endfor %}
-            </select>
-        </div>
+{% block add_book %}
+    {% if possible_books|length != 0%}
+        <form action="/add_book" method="post">
+            <input
+                type="hidden"
+                name="possible_books"
+                value='{{ possible_books | tojson }}'>
+        <!--        Store the possible books in json format-->
+            <div class="col-sm-5">
+                <label for="savedBookTitle" class="form-label">Title of the book:</label>
+                <input type="text" class="form-control" id="savedBookTitle" name="book_title" placeholder="{{ saved_book_title }}">
+            </div>
+            <div class="col-sm-5">
+                <label for="savedBookAuthor" class="form-label">Author the book:</label>
+                <input type="text" class="form-control" id="savedBookAuthor" name="author_name" placeholder="{{ saved_author_name }}">
+            </div>
 
-    <div class="col-sm-5 p-5 border bg-light">
-        <button type="submit" value="Add-Book" >
-            Add Book
-        </button>
+            {% if similar_books | length != 0%}
+                <div class="col-sm-5 p-5 border bg-light">
+                    <select class="col-sm-5 form-select" aria-label="Book" name="sim_book_nr">
+                        <option selected>Is book already stored? Click here!</option>
+                            {% for value, book in similar_books %}
+                                <option value="{{ value }}">{{ book[0] }} - {{ book[1] }} - {{ book[2] }}</option>
+                            {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+            <div class="col-sm-5 p-5 border bg-light">
+                <select class="col-sm-5 form-select" aria-label="Book" name="pos_book_id">
+                    <option selected>Open this menu with possible books</option>
+                        {% for book in possible_books %}
+                            <option value="{{ book['olid_book_id'] }}">{{ book['title'] }} - {{ book['author'] }} - {{ book['publication_year'] }}</option>
+                        {% endfor %}
+                </select>
+            </div>
 
-        <a href="{{ url_for('manually_add_book', book_title=saved_book_title) }}">
-            <button type="button">
-                Add manually
-            </button>
-        </a>
+            <div class="col-sm-5 p-5 border bg-light">
+                <button type="submit" value="Add-Book" >
+                    Add Book
+                </button>
+
+                <a href="{{ url_for('manually_add_book', book_title=saved_book_title) }}">
+                    <button type="button">
+                        Add manually
+                    </button>
+                </a>
 
                 <a href="{{ url_for('home') }}">
-            <button type="button">
-                Abort
-            </button>
-        </a>
-    </div>
+                    <button type="button">
+                        Abort
+                    </button>
+                </a>
+            </div>
+        </form>
 
     {% else %}
-        <div class="col-sm-5">
-            <label for="bookTitle" class="form-label">Title of the book:</label>
-            <input type="text" class="form-control" id="bookTitle" name="book_title" placeholder="{{ saved_book_title }}">
-        </div>
-        <div class="col-sm-5">
-            <label for="bookAuthor" class="form-label">Author of the book:</label>
-            <input type="text" class="form-control" id="bookAuthor" name="author_name" placeholder="{{ saved_author_name }}">
-        </div>
+        <form action="/search_to_add_book" method="post">
+            <div class="col-sm-5">
+                <label for="bookTitle" class="form-label">Title of the book:</label>
+                <input type="text" class="form-control" id="bookTitle" name="book_title" placeholder="{{ saved_book_title }}">
+            </div>
+            <div class="col-sm-5">
+                <label for="bookAuthor" class="form-label">Author of the book:</label>
+                <input type="text" class="form-control" id="bookAuthor" name="author_name" placeholder="{{ saved_author_name }}">
+            </div>
+            <div class="col-sm-5 p-5 border bg-light">
+                <button type="submit" value="Search-Book" >
+                    Search Book
+                </button>
+            </div>
+        </form>
+    {% endif %}
+
+    {% if nr_of_books_found == 0 %}
         <div class="col-sm-5 p-5 border bg-light">
-            <button type="submit" value="Search-Book" >
-                Search Book
-            </button>
+            <p>
+                The book <strong>{{ saved_book_title }}</strong>
+                could not be found.
+            </p>
+            <p>
+                Would you like to add this book manually?
+            </p>
+            <a href="{{ url_for('manually_add_book', book_title=saved_book_title) }}">
+                <button type="button">
+                    Add manually
+                </button>
+            </a>
+            <a href="{{ url_for('home') }}">
+                <button type="button">
+                    Abort
+                </button>
+            </a>
         </div>
     {% endif %}
-</form>
-
-{% if book_not_found == True %}
-    <div class="col-sm-5 p-5 border bg-light">
-        <p>
-            The book <strong>{{ saved_book_title }}</strong>
-            could not be found.
-        </p>
-        <p>
-            Would you like to add this book manually?
-        </p>
-        <a href="{{ url_for('manually_add_book', book_title=saved_book_title) }}">
-            <button type="button">
-                Add manually
-            </button>
-        </a>
-        <a href="{{ url_for('home') }}">
-            <button type="button">
-                Abort
-            </button>
-        </a>
-    </div>
-
-{% endif %}
 {% endblock %}
 

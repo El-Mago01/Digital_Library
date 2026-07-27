@@ -12,6 +12,8 @@ logging.basicConfig(
 # from dotenv import load_dotenv
 # API Ninjas key:
 # load_dotenv()
+# Between () is the path to the .env file. In this case, not needed as it was stored
+# in the project root.
 # API_KEY = os.getenv('API_KEY')
 
 
@@ -33,6 +35,7 @@ BOOK_IMAGE_URL = "https://covers.openlibrary.org/b/olid/"
 AUTHOR_IMAGE_URL = "https://covers.openlibrary.org/a/olid/"
 MAX_TITLE = 50
 MAX_AUTHOR = 40
+MAX_NR_OF_FOUND_BOOKS = 12
 
 TIMEOUTVALUE = 20
 
@@ -177,7 +180,7 @@ def fetch_new_author(author_olid: str) -> Author:
 
 
 def fetch_book_info(user_provided_book: str,
-                    user_provided_author_name: str) -> list:
+                    user_provided_author_name: str) -> tupple:
     """
     This function makes a general search call for a book based upon user input. The output is a list of tuples
     (Book object, author name). The background for this combination is that a book object does not have the
@@ -219,8 +222,15 @@ def fetch_book_info(user_provided_book: str,
     if book_info.status_code == 200:
         print("GET request successful!")
     book_details = book_info.json()
-    print("Number of books found=", book_details.get("numFound", 0))
-    if book_details.get("numFound", 0) > 0:
+    nr_books_found = book_details.get("numFound", 0)
+    if not isinstance(nr_books_found, int):
+        return []
+    print("Number of books found=", nr_books_found)
+    if nr_books_found > MAX_NR_OF_FOUND_BOOKS:
+        logging.info(f"Number of books found is {nr_books_found}. Will only show the first {MAX_NR_OF_FOUND_BOOKS}!")
+        print(f"Too many books found! will only show the first {MAX_NR_OF_FOUND_BOOKS}")
+    book_counter = 0
+    if nr_books_found > 0:
         for book_found in book_details["docs"]:
             logging.info(
                 f"Result of GET response with URL:\n{request_URL1}:\n{book_found}")
@@ -240,11 +250,12 @@ def fetch_book_info(user_provided_book: str,
                     :MAX_AUTHOR
                 ]
                 candidate_books.append((new_book, author_name))
+                book_counter += 1
+                if book_counter >= MAX_NR_OF_FOUND_BOOKS:
+                    break
         print(
-            f"We encountered this/these book(s) from open library from author{author_names}",
-            candidate_books,
-        )
-        return candidate_books
+            f"We encountered this/these book(s) from open library from author{candidate_books}")
+        return candidate_books, nr_books_found, book_counter
     return []
 
 

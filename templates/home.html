@@ -108,11 +108,20 @@
                                     ✏️
                                 </a>
 
-                                <a href="{{ url_for('delete_book', book_id=book_id) }}"
-                                   class="btn btn-outline-danger"
-                                   title="Delete">
-                                    🗑
-                                </a>
+                                <form action="{{ url_for('delete_book') }}" method="POST">
+                                    <input type="hidden" name="book_id" value="{{ book_id }}">
+
+                                    <button type="submit"
+                                            class="btn btn-outline-danger"
+                                            title="Delete">
+                                        🗑
+                                    </button>
+                                </form>
+<!--                                <a href="{{ url_for('delete_book', book_id=book_id) }}"-->
+<!--                                   class="btn btn-outline-danger"-->
+<!--                                   title="Delete">-->
+<!--                                    🗑-->
+<!--                                </a>-->
                             </div>
                         </div>
                     </div>

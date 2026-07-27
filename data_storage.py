@@ -75,7 +75,6 @@ def get_all_books_elements(sorting_command: dict) -> list:
                 .join(Author, Book.author_id == Author.author_id)
                 .order_by(Author.name.desc())
             )
-    # stmt = db.select(Book, Author).join(Author, Book.author_id == Author.author_id).order_by(Author.name.asc())
     books_and_authors = db.session.execute(stmt).all()
     for book, author in books_and_authors:
         print(f"{book.title} - {author.name}")
@@ -102,27 +101,35 @@ def get_all_books_from_db() -> list:
     return book_list
 
 
-def get_one_book(requested_book_id: int) -> Book:
+def get_one_book(requested_book_id: int) -> Book|None:
     """
     Returns the book object related to the author_id
     :param requested_book_id:
     :return:
     """
+    if not isinstance(requested_book_id, int):
+        return None
     stmt = db.select(Book).where(Book.book_id == requested_book_id)
     book = db.session.execute(stmt).scalars().all()
     print(book)
+    if len(book) == 0:
+        return None
     return book[0]
 
 
-def get_one_author(requested_author_id: int) -> Author:
+def get_one_author(requested_author_id: int) -> Author|None:
     """
     Returns the author object related to the author_id
     :param requested_author_id:
     :return:
     """
+    if not isinstance(requested_author_id, int):
+        return None
     stmt = db.select(Author).where(Author.author_id == requested_author_id)
     author = db.session.execute(stmt).scalars().all()
     print(author)
+    if len(author) == 0: # When no author is found with this author_id
+        return None
     return author[0]
 
 
@@ -177,6 +184,8 @@ def check_book_title_already_in_db(book_title: str) -> list:
     """
     sim_books = []
     book_title = book_title.strip()
+    if book_title != "":
+        return []
     stmt = (
         db.select(Book, Author)
         .join(Author, Book.author_id == Author.author_id)
@@ -199,6 +208,8 @@ def search_for_titles_and_authors(query: str, sorting_command):
     :return:
     """
     books = []
+    if query == "":
+        return []
     query = "%" + query.strip().lower() + "%"
     if sorting_command["sort_by"] == "title":
         if sorting_command["direction"] == "asc":

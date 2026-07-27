@@ -3,6 +3,7 @@ from flask import Flask, request, render_template, redirect, url_for, abort
 import os
 import data_fetcher as df
 import data_storage as ds
+from dotenv import load_dotenv
 from data_models import db, Author, Book
 import logging
 
@@ -31,11 +32,14 @@ app.config["SQLALCHEMY_DATABASE_URI"] = (
     f"sqlite:///{os.path.join(basedir, 'data/library.sqlite')}"
 )
 
+load_dotenv()  # Load environment variables from .env file
+app.secret_key = os.getenv('SECRET_KEY')
+
 # This will connect the Flask app to the flask-sqlalchemy code.
 db.init_app(app)
 # This code only needs to run once.
-with app.app_context():
-    db.create_all()
+# with app.app_context():
+#     db.create_all()
 
 """
 Helper functions
@@ -118,26 +122,26 @@ def add_book():
     Note: OLID = Open Library Identifier (the ID mechanism of open library for books, authors and cover images)
     This route enables the user to add a new book. The adding of a new book typically occurs in 4 STEPS
     STEP 1: GET request
-    The 1st time this route is accessed is when
-    the user selects on the Add book menu item. This is a GET request and the user receives the
-    add_book.html file
-    STEP 2: 1st POST request
-    The 2nd time this route is accessed is when the user filled in a title and submits it. This
-    results the reception of a POST request with the "book_title" and author fulfilled. Upon reception 2 things
-    will need to happen:
-    1. The DB is checked to see if a similar title/author is already stored. If it is, the similar_books value is
+    The '/add_book' route is accessed  with a GET request, when the user selects the Add book menu item.
+    From this GET request the user receives the add_book.html file to fill in wanted title/author
+
+    STEP 2: 1st POST request with the wanted title/author will be forwarded to route '/search_to_add_book'
+    Here 2 things will need to happen:
+    A. The DB is checked to see if a similar title/author is already stored. If it is, the similar_books value is
     filled with the similar titles already stored in Book.
     In this is case, the add_book.html is prefilled with the list of similar_books. If the user selects
     a book from this list, the session is aborted.
-    2. from data_fetcher, the fetch_book_info is called, with the title and author as search items.
+    B. from data_fetcher, the fetch_book_info is called, with the title and author as search items.
     The call is made to open library to search for this title/author. A list of dicts with all
     relevant books
     is returned. The title/author/publishing_year are displayed in a drop-down list with the
     olid_book_id as value that
     will be returned for the selected book.  The user has now 2 options, either it selects a
     book from the list and press "add book" or clicks "Manually add books".
-    STEP 3: 2nd POST request to add the selected book (and indirectly the author if needed)
-    3. The user selected "add book" for the selected book:
+
+    STEP 3: route '/add_book' receives a POST request to add the selected book
+    (and indirectly the author if needed)
+    A. The user selected "add book" for the selected book:
     First, there is a check if the Author OLID idea is already stored, or if there is already an author with
     the same name.
     If there is, the author_ID of this author is returned. If not, this new author is stored in the DB.
@@ -145,7 +149,7 @@ def add_book():
     request
     :return:
     """
-    # 1st REQUEST, a GET request
+    # STEP 1. 1st GET REQUEST
     if request.method == "GET":
         logging.info("Adding Book Process STEP 1: GET request")
         return render_template(
@@ -158,52 +162,6 @@ def add_book():
             book_not_found=False,
         )
 
-    saved_book_title = request.form.get("saved_book_title", "")
-    saved_author_name = request.form.get("saved_author_name", "")
-
-    book_title = request.form.get("book_title", "")
-    author_name = request.form.get("author_name", "")
-    print(
-        f"book_title  {book_title} saved_book_title, {saved_book_title}, saved_author_name, {saved_author_name}"
-    )
-
-    # 2nd REQUEST, a POST request
-    if len(saved_book_title) == 0 and len(book_title) != 0:
-        logging.info("Adding Book Process STEP 2: 1st POST request")
-
-        similar_stored_books = ds.check_book_title_already_in_db(book_title)
-        # 2 Options here, either there are similar_stored_books or not.
-        # If similar books are found in the DB, the user will receive an adjusted
-        # add_book.html where it can either select an existing title, or a title from the
-        # possible books found on the open library. If there are no similar_books found
-        # The user will only receive the possible book selection
-        try:
-            possible_books = df.fetch_book_info(book_title, author_name)
-        except df.BookFetchException as e:
-            outcome = {
-                "result": 200,
-                "message": f"Could not fetch book/author "
-                f"information due to an exception: \n{e}. \nTry again later.",
-            }
-            sorting_command = {"sort_by": "books", "direction": "asc"}
-            return return_to_home(
-                "Adding a new author",
-                outcome,
-                sorting_command)
-        # possible_books contains a list of tuples with a Book class and the
-        # name of the author
-        book_not_found = True
-        if len(possible_books) != 0:
-            book_not_found = False
-        return render_template(
-            "add_book.html",
-            possible_books=possible_books,
-            saved_book_title=book_title,
-            saved_author_name=saved_author_name,
-            similar_books=similar_stored_books,
-            current_function="Add a new book",
-            book_not_found=book_not_found,
-        )
     # STEP 3: 2nd POST request to add the selected book (and indirectly the author if needed)
     # Here there are 3 scenarios for this stage:
     # 1. The user selected 1 of the possible_books. In that case:
@@ -215,43 +173,10 @@ def add_book():
     # /manually_add_book is selected
 
     # The user changed the wanted book title (case 2)
-    if len(book_title) != 0 or len(author_name) != 0:
-        similar_stored_books = ds.check_book_title_already_in_db(book_title)
-        try:
-            possible_books = df.fetch_book_info(book_title, author_name)
-        except df.BookFetchException as e:
-            outcome = {
-                "result": 200,
-                "message": f"Could not fetch book/author information due to an exception: \n{e}. \nTry again later.",
-            }
-            sorting_command = {"sort_by": "books", "direction": "asc"}
-            return return_to_home(
-                "Adding a new author",
-                outcome,
-                sorting_command)
-        available_books = []
-        for book, author_name in possible_books:
-            my_dict = book.serialize()
-            my_dict["author_name"] = author_name
-            available_books.append(my_dict)
-
-        book_not_found = True
-        if len(possible_books) != 0:
-            book_not_found = False
-        return render_template(
-            "add_book.html",
-            possible_books=available_books,
-            saved_book_title=book_title,
-            saved_author_name=saved_author_name,
-            similar_books=similar_stored_books,
-            current_function="Add a new book",
-            book_not_found=book_not_found,
-        )
 
     sim_stored_book = request.form.get("sim_book_nr", "")
-    if (
-        sim_stored_book != ""
-    ):  # This is case 3, the user selected one of the already stored books
+    if sim_stored_book != "":
+        # This is case 3, the user selected one of the already stored books
         return redirect(url_for("home"))
     # 1. The user selected 1 of the possible_books from the available options
     try:
@@ -269,10 +194,8 @@ def add_book():
     author_id = -1
     for the_book in possible_books:
         try:
-            if (
-                the_book["olid_book_id"] == selected_olid_book
-                and selected_olid_book != ""
-            ):
+            if (the_book["olid_book_id"] == selected_olid_book and
+                    selected_olid_book != ""):
                 book_dict_to_store = the_book
                 author_olid = the_book.get("olid_author_id")[0]
                 author_id_and_name = ds.check_author_already_in_db(
@@ -289,9 +212,8 @@ def add_book():
                             f"<p>Successfully added author {
                                 new_author.name}.</p>")
                 else:
-                    author_id, author_name = author_id_and_name[
-                        0
-                    ]  # If the author was already stored in the DB.
+                    author_id, author_name = author_id_and_name[0]
+                    # If the author was already stored in the DB.
                 break
 
                 # Note, if author is already stored, nothing needs to be done.
@@ -323,6 +245,82 @@ def add_book():
         outcome = {"result": 200, "message": outcome_message}
     return return_to_home("Adding a book", outcome, sorting_command)
 
+
+@app.route("/search_to_add_book", methods=["POST"])
+def search_to_add_book():
+    """
+    The 2nd step for adding a new book. This route is accessed when the user filled in a title/author
+    and submits it. This results the reception of a POST request with either and the "book_title" and author
+    fulfilled. Upon reception 2 things will need to happen:
+    1. The DB is checked to see if a similar title/author is already stored. If it is, the similar_books value is
+    filled with the similar titles already stored in Book.
+    In this is case, the add_book.html is prefilled with the list of similar_books. If the user selects
+    a book from this list, the session is aborted.
+    2. from data_fetcher, the fetch_book_info is called, with the title and author as search items.
+    The call is made to open library to search for this title/author. A list of dicts with all
+    relevant books
+    is returned. The title/author/publishing_year are displayed in a drop-down list with the
+    olid_book_id as value that
+    :return:
+    """
+    saved_book_title = request.form.get("saved_book_title", "")
+    saved_author_name = request.form.get("saved_author_name", "")
+
+    book_title = request.form.get("book_title", "")
+    author_name = request.form.get("author_name", "")
+    print(
+        f"book_title  {book_title} saved_book_title, {saved_book_title}, saved_author_name, {saved_author_name}"
+    )
+    # 2nd REQUEST, a POST request
+    # The user just indicated the book title / author name that should be
+    # added to the db. For now:
+    # 1. Check if there are already books with similar names in the DB.
+    # 2. At the same time, check already for books in the open library and return
+    # the possible books as options to the user.
+    logging.info("Adding Book Process STEP 2: 1st POST request at route 'search_to_add_book'")
+    similar_stored_books = ds.check_book_title_already_in_db(book_title)
+
+    # 2 Options here, either there are similar_stored_books or not.
+    # If similar books are found in the DB, the user will receive an adjusted
+    # add_book.html where it can either select an existing title, or a title from the
+    # possible books found on the open library. If there are no similar_books found
+    # The user will only receive the possible book selection
+    try:
+        possible_books, total_nr_books_found, nr_books_found = df.fetch_book_info(book_title, author_name)
+    except df.BookFetchException as e:
+        outcome = {
+            "result": 200,
+            "message": f"Could not fetch book/author "
+                       f"information due to an exception: \n{e}. \nTry again later.",
+        }
+        sorting_command = {"sort_by": "books", "direction": "asc"}
+        return return_to_home(
+            "Adding a new author",
+            outcome,
+            sorting_command)
+    # possible_books contains a list of tuples with a Book class and the
+    # name of the author
+
+    # Serialize the books
+    found_books = []
+    for book, author in possible_books:
+        serialized_book = book.serialize()
+        serialized_book['author'] = author
+        found_books.append(serialized_book)
+    outcome = {
+        "result": 200,
+        "message": f"Found {total_nr_books_found} books. Will only display the 1st {nr_books_found} ones",
+    }
+    return render_template(
+        "add_book.html",
+        possible_books=found_books,
+        saved_book_title=book_title,
+        saved_author_name=saved_author_name,
+        similar_books=similar_stored_books,
+        current_function="Add a new book",
+        outcome=outcome,
+        nr_of_books_found=nr_books_found
+    )
 
 @app.route("/manually_add_book", methods=["POST", "GET"])
 def manually_add_book():
@@ -407,6 +405,8 @@ def update_book():
         abort(404, description=f"Book with id {received_book_id} not found")
 
     book_to_update = ds.get_one_book(received_book_id)
+    if book_to_update is None:
+        abort(404, description=f"Book with id {received_book_id} not found")
     authors = ds.get_all_authors_from_db()
     return render_template(
         "update_book.html",
@@ -460,7 +460,7 @@ def updated_book():
     return return_to_home("Update a book", outcome, sorting_command)
 
 
-@app.route("/delete_book", methods=["GET"])
+@app.route("/delete_book", methods=["POST"])
 def delete_book():
     """
     Delete a book from the DB based upon input parameter "book_id"
@@ -468,7 +468,7 @@ def delete_book():
     :return:
     """
     try:
-        received_book_id = int(request.args.get("book_id", "-1"))
+        received_book_id = int(request.form.get("book_id", "-1"))
     except ValueError as e:
         abort(500, description=e)
 
@@ -723,21 +723,23 @@ def updated_author():
     return return_to_authors_list("Update an author", outcome)
 
 
-@app.route("/delete_author", methods=["GET"])
+@app.route("/delete_author", methods=["POST"])
 def delete_author():
     """
     Enables the user to delete an author, following the same principles of "delete_book" with the
     difference that, if an author is deleted, all his books are also deleted.
     """
     try:
-        received_author_id = int(request.args.get("author_id", "-1"))
+        received_author_id = int(request.form.get("author_id", "-1"))
     except ValueError as e:
         abort(500, description=e)
 
     if received_author_id == -1:
-        abort(404, description=f"Book with id {received_author_id} not found")
+        abort(404, description=f"No valid author_id {received_author_id} received")
 
     author_to_delete = ds.get_one_author(received_author_id)
+    if author_to_delete is None:
+        abort(404, description=f"Author with id {received_author_id} not found")
     books_to_delete = ds.get_all_books_from_author(received_author_id)
     outcome = {
         "result": 200,
@@ -826,4 +828,4 @@ def bad_request(e):
     return render_template("error.html", code=400, message=e.description), 400
 
 
-app.run(host="0.0.0.0", port=5002, debug=True)
+app.run(host="0.0.0.0", port=5003, debug=True)

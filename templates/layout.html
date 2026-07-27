@@ -188,18 +188,42 @@
             `/update_book?book_id=${encodeURIComponent(bookId)}`;
 }
 
-    function submitAuthorDel() {
+    // function submitAuthorDel() {
+    //     const authorId = document.getElementById("authorIdDel").value.trim();
+    //     console.log("Hello submitAuthorDel is triggered with book ID:", authorId);
+    //
+    //     if (!authorId) {
+    //         console.log("No authorId found!")
+    //         return;
+    // }
+    //
+    //     window.location.href =
+    //         `/delete_author?author_id=${encodeURIComponent(authorId)}`;
+// }
+    async function submitAuthorDel() {
         const authorId = document.getElementById("authorIdDel").value.trim();
         console.log("Hello submitAuthorDel is triggered with book ID:", authorId);
 
-        if (!authorId) {
-            console.log("No authorId found!")
-            return;
+        const body = new URLSearchParams();
+        body.append("author_id", authorId);
+        console.log("submitAuthorDel is triggered with authorId:", authorId);
+
+        const response = await fetch("/delete_author", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: body.toString()
+        });
+
+        if (response.ok) {
+            console.log("author deleted successfully.");
+            window.location.reload();
+        } else {
+            document.documentElement.innerHTML = await response.text();
+        }
     }
 
-        window.location.href =
-            `/delete_author?author_id=${encodeURIComponent(authorId)}`;
-}
 
     function submitBookDel() {
         const bookId = document.getElementById("bookIdDel").value.trim();

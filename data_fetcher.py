@@ -180,7 +180,7 @@ def fetch_new_author(author_olid: str) -> Author:
 
 
 def fetch_book_info(user_provided_book: str,
-                    user_provided_author_name: str) -> tupple:
+                    user_provided_author_name: str) -> tuple:
     """
     This function makes a general search call for a book based upon user input. The output is a list of tuples
     (Book object, author name). The background for this combination is that a book object does not have the

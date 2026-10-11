@@ -184,7 +184,7 @@ def check_book_title_already_in_db(book_title: str) -> list:
     """
     sim_books = []
     book_title = book_title.strip()
-    if book_title != "":
+    if book_title == "":
         return []
     stmt = (
         db.select(Book, Author)

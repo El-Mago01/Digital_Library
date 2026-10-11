@@ -6,6 +6,8 @@ import data_storage as ds
 from dotenv import load_dotenv
 from data_models import db, Author, Book
 import logging
+from itsdangerous import URLSafeSerializer, BadSignature
+from sqlalchemy.exc import SQLAlchemyError
 
 logging.basicConfig(
     filename="app.log",
@@ -33,10 +35,28 @@ app.config["SQLALCHEMY_DATABASE_URI"] = (
 )
 
 load_dotenv()  # Load environment variables from .env file
-app.secret_key = os.getenv('SECRET_KEY')
+app.secret_key = os.getenv("SECRET_KEY")
+if not app.secret_key:
+    raise RuntimeError(
+        "SECRET_KEY is missing. Please configure it in your .env file."
+    )
 
 # This will connect the Flask app to the flask-sqlalchemy code.
 db.init_app(app)
+
+
+@app.template_filter("sign_selection")
+def sign_selection(value):
+    """Protect Open Library search results sent through hidden form fields."""
+    return URLSafeSerializer(app.secret_key, salt="library-selection").dumps(value)
+
+
+def read_selection(value):
+    try:
+        return URLSafeSerializer(app.secret_key, salt="library-selection").loads(value)
+    except (BadSignature, TypeError):
+        abort(400, description="Invalid or modified selection data.")
+
 # This code only needs to run once.
 # with app.app_context():
 #     db.create_all()
@@ -181,13 +201,15 @@ def add_book():
     # 1. The user selected 1 of the possible_books from the available options
     try:
         books_string = request.form.get("possible_books", "")
-        possible_books = json.loads(books_string)
+        possible_books = read_selection(books_string)
+        if not isinstance(possible_books, list):
+            abort(400, description="Invalid book selection.")
         selected_olid_book = request.form.get("pos_book_id", "")
         outcome_message = ""
     except (TypeError, ValueError) as e:
         abort(
-            500,
-            description=f"Unexpected returned input provided by the add_book.html form . {e}",
+            400,
+            description=f"Invalid book form input: {e}",
         )
 
     book_dict_to_store = {}
@@ -197,7 +219,10 @@ def add_book():
             if (the_book["olid_book_id"] == selected_olid_book and
                     selected_olid_book != ""):
                 book_dict_to_store = the_book
-                author_olid = the_book.get("olid_author_id")[0]
+                author_ids = the_book.get("olid_author_id")
+                if not isinstance(author_ids, list) or not author_ids or not isinstance(author_ids[0], str):
+                    abort(400, description="Invalid author identifier.")
+                author_olid = author_ids[0]
                 author_id_and_name = ds.check_author_already_in_db(
                     the_book["title"], author_olid
                 )
@@ -206,7 +231,7 @@ def add_book():
                     if new_author is not None:
                         # Store author in the DB
                         db.session.add(new_author)
-                        db.session.commit()
+                        db.session.flush()
                         author_id = new_author.author_id
                         outcome_message += (
                             f"<p>Successfully added author {
@@ -218,10 +243,9 @@ def add_book():
 
                 # Note, if author is already stored, nothing needs to be done.
                 # Only the author_id is returned.
-        except KeyError as e:
-            message = f"Internal Error: could not find the olid_author or olid_book. Details: {e}"
-            logging.info(message)
-            abort(500, descripton=message)
+        except (KeyError, TypeError, IndexError) as e:
+            db.session.rollback()
+            abort(400, description=f"Invalid book selection data: {e}")
 
     logging.info(f"This book is about to be stored: {book_dict_to_store}")
     outcome = {
@@ -238,8 +262,12 @@ def add_book():
             return render_template("home.html", outcome=outcome)
         book_dict_to_store["author_id"] = author_id
         book_to_store = df.fetch_new_book(book_dict_to_store)
-        db.session.add(book_to_store)
-        db.session.commit()
+        try:
+            db.session.add(book_to_store)
+            db.session.commit()
+        except SQLAlchemyError:
+            db.session.rollback()
+            raise
         outcome_message += f"<p>Successfully added book {
             book_to_store.title}</p>"
         outcome = {"result": 200, "message": outcome_message}
@@ -399,7 +427,7 @@ def update_book():
     try:
         received_book_id = int(request.args.get("book_id", "-1"))
     except ValueError as e:
-        abort(500, description=e)
+        abort(400, description=str(e))
 
     if received_book_id == -1:
         abort(404, description=f"Book with id {received_book_id} not found")
@@ -431,7 +459,7 @@ def updated_book():
                 "book_publication_year", "0"))
         updated_author_id = request.form.get("author_id", "-1")
     except ValueError as e:
-        abort(500, description=f"Updated failed due to : {e}")
+        abort(400, description=f"Invalid update input: {e}")
     updated_title = request.form.get("book_title", "")
     updated_book_isbn = request.form.get("book_isbn", "")
     updated_olid_book_id = request.form.get("olid_book_id", "")
@@ -470,7 +498,7 @@ def delete_book():
     try:
         received_book_id = int(request.form.get("book_id", "-1"))
     except ValueError as e:
-        abort(500, description=e)
+        abort(400, description=str(e))
 
     if received_book_id == -1:
         abort(404, description=f"Book with id {received_book_id} not found")
@@ -594,17 +622,21 @@ def add_author():
         # a list, the list of possible authors from the 1st POST stage, is
         # stored as JSON in this jinja2 variable
         authors_string = request.form.get("possible_authors", "")
-        possible_authors = json.loads(authors_string)
+        possible_authors = read_selection(authors_string)
+        if not isinstance(possible_authors, list):
+            abort(400, description="Invalid author selection.")
         print("forwarded possible_authors: ", possible_authors)
         selected_author = int(request.form.get("pos_author_nr", -1))
+        if selected_author < 0 or selected_author >= len(possible_authors):
+            abort(400, description="Invalid author selection.")
         print(
             "This is the final selected author",
             selected_author,
             possible_authors[selected_author]["name"],
         )
-    except ValueError as e:
+    except (ValueError, TypeError, IndexError, KeyError) as e:
         abort(
-            500,
+            400,
             description=f"return input provided by the add_author.html "
             f"form is not an integer. See message: {e}",
         )
@@ -670,7 +702,7 @@ def update_author():
     try:
         received_author_id = int(request.args.get("author_id", "-1"))
     except ValueError as e:
-        abort(500, description=e)
+        abort(400, description=str(e))
 
     if received_author_id == -1:
         abort(404, description=f"Book with id {received_author_id} not found")
@@ -699,7 +731,7 @@ def updated_author():
         if death_year != "":
             death_year = int(death_year)
     except ValueError as e:
-        abort(500, description=f"Updated failed due to : {e}")
+        abort(400, description=f"Invalid update input: {e}")
     updated_name = request.form.get("author_name", "")
     updated_olid_author = request.form.get("olid_author", "")
     updated_cover_image = request.form.get("cover_image", "")
@@ -732,7 +764,7 @@ def delete_author():
     try:
         received_author_id = int(request.form.get("author_id", "-1"))
     except ValueError as e:
-        abort(500, description=e)
+        abort(400, description=str(e))
 
     if received_author_id == -1:
         abort(404, description=f"No valid author_id {received_author_id} received")
@@ -828,4 +860,5 @@ def bad_request(e):
     return render_template("error.html", code=400, message=e.description), 400
 
 
-app.run(host="0.0.0.0", port=5003, debug=True)
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5003, debug=True)

@@ -1,6 +1,8 @@
 # Digital Library
 
-A small Flask learning project for managing books and authors in a local SQLite database. It supports adding, updating, deleting, listing and searching books and authors, including looking up book and author information through the [Open Library](https://openlibrary.org/) API.
+A small Flask learning project for managing books and authors in a local SQLite database. It supports adding, updating, 
+deleting, listing and searching books and authors, including looking up book and author information through 
+the [Open Library](https://openlibrary.org/) API.
 
 ## Getting started
 
@@ -31,7 +33,8 @@ Then start the application:
 python app.py
 ```
 
-Open http://127.0.0.1:5003/ in your browser. The application uses `data/library.sqlite` for its local database (ignored by Git). The existing `data/library-old.sqlite` is retained as a historical project file.
+Open http://127.0.0.1:5003/ in your browser. The application uses `data/library.sqlite` for its local 
+database (ignored by Git). The existing `data/library-old.sqlite` is retained as a historical project file.
 
 ## Learning notes (preserved from the original README)
 

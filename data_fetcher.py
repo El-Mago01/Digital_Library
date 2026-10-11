@@ -110,10 +110,10 @@ def fetch_author_info(user_provided_author: str) -> list:
                 author_dict["order_number"] = order_number
                 order_number += 1
                 author_dict["name"] = found_author
-                author_dict["olid_author"] = author_details.get("key", "")
-                author_dict["birth_year"] = author_details.get("birth_year")
-                author_dict["death_year"] = author_details.get("death_year")
-                author_dict["death_year"] = author_details.get("top_work")
+                author_dict["olid_author"] = authors_found.get("key", "")
+                author_dict["birth_year"] = authors_found.get("birth_date")
+                author_dict["death_year"] = authors_found.get("death_date")
+                author_dict["top_work"] = authors_found.get("top_work")
                 author_dict["cover_img"] = "Not Found"
                 author_dict["top_subjects"] = authors_found.get("top_subjects")
                 candidate_authors.append(author_dict)

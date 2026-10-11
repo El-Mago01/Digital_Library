@@ -224,7 +224,7 @@ def fetch_book_info(user_provided_book: str,
     book_details = book_info.json()
     nr_books_found = book_details.get("numFound", 0)
     if not isinstance(nr_books_found, int):
-        return []
+        return [], 0, 0
     print("Number of books found=", nr_books_found)
     if nr_books_found > MAX_NR_OF_FOUND_BOOKS:
         logging.info(f"Number of books found is {nr_books_found}. Will only show the first {MAX_NR_OF_FOUND_BOOKS}!")
@@ -256,7 +256,7 @@ def fetch_book_info(user_provided_book: str,
         print(
             f"We encountered this/these book(s) from open library from author{candidate_books}")
         return candidate_books, nr_books_found, book_counter
-    return []
+    return [], 0, 0
 
 
 def fetch_new_book(selected_book: dict) -> Book:

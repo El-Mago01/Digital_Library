@@ -35,7 +35,11 @@ app.config["SQLALCHEMY_DATABASE_URI"] = (
 )
 
 load_dotenv()  # Load environment variables from .env file
-app.secret_key = os.getenv('SECRET_KEY')
+app.secret_key = os.getenv("SECRET_KEY")
+if not app.secret_key:
+    raise RuntimeError(
+        "SECRET_KEY is missing. Please configure it in your .env file."
+    )
 
 # This will connect the Flask app to the flask-sqlalchemy code.
 db.init_app(app)

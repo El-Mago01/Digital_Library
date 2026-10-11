@@ -1,0 +1,12 @@
+.idea/
+.venv/
+.pytest_cache/
+.data/movies.db
+.data/users.db
+data/library.sqlite
+data/libraryold.sqlite
+app.log
+__pycache__/
+__init__.py
+*.pyc
+*/log_file.txt

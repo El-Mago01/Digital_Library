@@ -24,7 +24,7 @@
             <input
                 type="hidden"
                 name="possible_books"
-                value='{{ possible_books | tojson }}'>
+                value='{{ possible_books | sign_selection }}'>
         <!--        Store the possible books in json format-->
             <div class="col-sm-5">
                 <label for="savedBookTitle" class="form-label">Title of the book:</label>
